@@ -20,11 +20,11 @@ class Main:
     def mainloop(self):
 
         # Create background
-        bg = pygame.image.load("C:\\Users\\Be-Emnet Elias\\OneDrive - Kent School District\\Desktop\\Chess\\imgs\\bg_green.png")
+        bg = pygame.image.load("imgs\\bg_green.png")
         bg = pygame.transform.scale(bg,(800,800))
         
         # Slice pieces.png into separate pieces
-        pieces = pygame.image.load("C:\\Users\\Be-Emnet Elias\\OneDrive - Kent School District\\Desktop\\Chess\\imgs\\pieces.png")
+        pieces = pygame.image.load("imgs\\pieces.png")
         piece_width = pieces.get_width() // 6
         piece_height = pieces.get_height() // 2
 
