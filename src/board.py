@@ -101,6 +101,13 @@ class Board:
 
         if FENSTRING == "random":
             FENSTRING = "rnbqk2r/pppp1ppp/5n2/2b1p3/8/4PN2/PPPPBPPP/RNBQK2R w KQkq - 4 4";
+        
+        if FENSTRING == "castle_king_side":
+            FENSTRING = "r3kb1r/ppp1pppp/2nq1n2/5b2/2BP4/2N1PN2/PP3PPP/R1BQK2R w KQkq - 3 7"
+
+        if FENSTRING == "knight_only":
+            FENSTRING = "8/4N3/8/8/8/8/8/8 w - - 0 59"
+
 
         board_information = FENSTRING.split(" ")
         position = board_information[0]
@@ -179,7 +186,7 @@ class Board:
                 col = 0
         self.LEGAL_MOVES = self.all_legal_moves()
 
-    def printBoard(self) -> None:
+    def print_board(self) -> None:
         for row in range(8):
             for col in range(8):
                 piece = self.board[row][col]
@@ -225,11 +232,15 @@ class Board:
         
         result = set()
 
+        if simulation:
+            piece = deepcopy(piece)
+
         previous_col, previous_row = piece.getPos()
         target_col, target_row, move_type = position
+        target = (target_col, target_row)
 
         if move_type in(MoveType.DEFAULT, MoveType.ENPASSANT, MoveType.CASTLE_KING_SIDE, MoveType.CASTLE_QUEEN_SIDE):
-            result.add((deepcopy(piece),position,piece.getPos()))
+            result.add((deepcopy(piece),target,piece.getPos()))
 
             captured_piece = self.get_piece((target_col,target_row))
 
@@ -312,10 +323,15 @@ class Board:
 
         if not simulation:
             self.LEGAL_MOVES = self.all_legal_moves()
+            self.print_board()
 
         self.MOVE_NUMBER += 1
 
+        
 
+        return result
+    
+    def print_move(self, result: set()) -> None:
         print(f"MOVE NUMBER {self.MOVE_NUMBER}:", end=' ')
         for move in result:
             piece, target_position, previous_position = move
@@ -325,15 +341,23 @@ class Board:
                 print(f"{piece} from {previous_position} was captured", end=' ')
         print("\n")
 
-        return result
-    
     def undo_move(self, moved_pieces: set()) -> None:
         for move in moved_pieces:
-            piece, _, previous_position = move
-            curr_col, curr_row = previous_position
-            self.board[curr_row][curr_col] = deepcopy(piece)
-            print(f"Move {piece} back to {previous_position}", end= ' ')
-        print("\n\n")
+            piece, _, original_position = move
+            original_col, original_row = original_position
+
+            # Place the deep copy back to its original position
+            self.board[original_row][original_col] = piece
+
+            # print(f"undoing {piece} back to {list(original_position)}")
+
+            # If the piece is not None, update its position attributes
+            if piece:
+                piece.col = original_col
+                piece.row = original_row
+                piece.x = original_col * 100
+                piece.y = original_row * 100
+
         
     def all_legal_moves(self) -> dict():
         '''
@@ -357,9 +381,6 @@ class Board:
             return self.legal_moves_pawn(piece, check_for_checkmate)
         if piece.name == Name.KING:
             return self.legal_moves_king(piece,check_for_checkmate)
-        
-        if piece.name == Name.KNIGHT:
-            return set()
         
         legal_moves = set()
         displacements = self.PSEUDO_LEGAL_MOVEMENT[piece.name]
@@ -437,11 +458,11 @@ class Board:
             enpassant_piece = self.get_piece((curr_col,piece.row))
 
             # Forward Move
-            if dx == 0 and target_piece == None and self.king_safe_after_move(piece, (curr_col,curr_row,MoveType.DEFAULT), check_for_checkmate): 
+            if dx == 0 and target_piece == None and self.king_safe_after_move(piece, (curr_col,curr_row,MoveType.DEFAULT), check_for_checkmate) and check_for_checkmate: 
                 pawn_moves.add((curr_col,curr_row,move_type))
 
                 # Double Forward Move
-                if piece.first_move and self.get_piece((curr_col,curr_row+dy)) == None and self.king_safe_after_move(piece, (curr_col,curr_row+dy,MoveType.DEFAULT), check_for_checkmate):
+                if piece.first_move and self.get_piece((curr_col,curr_row+dy)) == None and self.king_safe_after_move(piece, (curr_col,curr_row+dy,MoveType.DEFAULT), check_for_checkmate) and check_for_checkmate:
                     pawn_moves.add((curr_col,curr_row+dy,move_type))
 
             # Diagonal Capture
@@ -462,13 +483,15 @@ class Board:
             return True
         
         spaces_in_check = set()
+        
 
-        move = self.move_piece(piece,pos, simulation=True)
         print(f"Simulating {piece} to {list(pos)}")
+        move = self.move_piece(piece, pos, simulation=True)
+        king_position = self.get_king(piece.is_white).getPos()
+
+        # print(list(king_position))
+        
         self.undo_move(move)
-        self.printBoard()
-        
-        
         return True
     
     def update_all_pinned_pieces(self) -> None:
