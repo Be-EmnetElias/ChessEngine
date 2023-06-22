@@ -13,38 +13,9 @@ Given a position from main.py, the following will need to happen:
         - insufficient material > when a checkmate is impossible with the pieces remaining
 
     
-    TODO: Finish implementing legal king moves, including castling and also finish pawn promotion and enpassant. and then finish king safe after move. For this, you will need
-        to implement a reverse move system by storing each move in move history and then using the movetype, reversing the move.
-    
-    
-    ------------------------------------------------------------------Patch Notes------------------------------------------------------------------
+    TODO: Make the visuals and sounds more interesting. Add visuals for spaces in check, move history, move hints and drag highlights. 
+    Also add sounds for piece moves, captures, check and checkmate
 
-    
-    Version 1:
-
-        Progress:
-            Blank File
-
-        Issue:
-            Pieces are not set up in correct order, the starting white king and queen row is just pasted all over the board
-            When trying to print the board set up using ASCII, nothing pops up
-
-        Fix: 
-            When initializing the 2D board, board = [[None] * 8] * 8 creates 8 of the SAME list, so everything looked like that first row. Use list comprehension to 
-            create a 2D board, board = [[None for i in range(8)] for j in range(8)]
-
-            Python sometimes shows an invalid syntax error, it might be because a python2 interpreter is trying to interpret this code, just close the terminal bottom
-            right and make a new terminal
-
-    Version 2:
-
-        Progress:
-            Pieces can now move including castling, promotion to queen and enpassant but king safety is not being check.
-            Moves can be stored as a list of tuples, each tuple containing a piece that has moved and its information
-
-        Issue:
-            In king_safe_after_move, a simulation is made calling the move_piece main function. Then the undo_function which should leave everything normal.
-            Instead, random pieces go missing. Good luck!
 '''
 
 from piece import Name
@@ -79,12 +50,11 @@ class Board:
         self.MOVE_NUMBER = 0
         self.GAME_STATE = GameState.ACTIVE
         self.WHITE_TURN = True
-        self.MOVE_HISTORY = {}
-        
+
         self.LEGAL_MOVES = {} # Key: Piece, Value: List of Tuples (col, row, MoveType)
 
         
-        print(f'setting board to {initial_position} position')
+        print(f'Setting board to {initial_position} position')
         self.setBoard(initial_position)
 
     def setBoard(self, FENSTRING: str) -> None:
@@ -196,23 +166,28 @@ class Board:
                     print(". ",end="")
             print("\n")
 
-    def user_valid_move(self, piece: Piece, position:tuple()) -> bool:
+    def user_valid_move(self, piece: Piece, position:tuple()) -> tuple:
         '''
         Returns True if the user move was a valid move, False otherwise. All valid moves are already calculated.
         '''
 
+        valid = False
+        move_type = None
         # Calculate all legal moves, this tuple will contain the move type which is not in position parameter
         legal_moves_for_piece = self.legal_moves(piece, check_for_checkmate=True)
 
         # Iterate through the legal moves and look for this position
         for move in legal_moves_for_piece:
-            col, row, move_type = move
+            col, row, type_of_move = move
             if position == (col,row):
                 # Pass the legal move containing the move type
+                valid = True
+                move_type = type_of_move
+                if self.are_enemies(piece,self.get_piece((col,row))) and move_type == MoveType.DEFAULT:
+                    move_type = MoveType.CAPTURE
                 self.move_piece(piece,move, simulation=False)
-                return True
         
-        return False
+        return (valid,move_type)
     
     def move_piece(self, piece: Piece, position: tuple(), simulation: bool) -> set():
         '''
@@ -323,7 +298,6 @@ class Board:
 
         if not simulation:
             self.LEGAL_MOVES = self.all_legal_moves()
-            self.print_board()
 
         self.MOVE_NUMBER += 1
 
@@ -477,21 +451,14 @@ class Board:
 
     def king_safe_after_move(self,piece: Piece, pos: tuple(), check_for_checkmate: bool) -> bool:
         '''
-        Only calculated when checking for checkmate. Start by soft simulating the move ()
+        Only calculated when checking for checkmate. Simulates the move, then checks if this pieces king is on a square being
+        attacked by the enemy team
         '''
         if not check_for_checkmate:
             return True
         
         spaces_in_check = set()
         
-
-        print(f"Simulating {piece} to {list(pos)}")
-        move = self.move_piece(piece, pos, simulation=True)
-        king_position = self.get_king(piece.is_white).getPos()
-
-        # print(list(king_position))
-        
-        self.undo_move(move)
         return True
     
     def update_all_pinned_pieces(self) -> None:
@@ -568,8 +535,8 @@ class Board:
         '''
         if A == None or B == None:
             return False
-        else:
-            return A.is_white != B.is_white
+        
+        return not (A.is_white == B.is_white)
         
     def get_piece(self, pos: tuple()) -> Piece:
         '''
