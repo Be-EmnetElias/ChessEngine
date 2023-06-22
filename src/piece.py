@@ -11,16 +11,12 @@ class Name(Enum):
 
 class MoveType(Enum):
 
-    def __str(self):
-        return  str(self.value) + " D"
-    # A default move is one that moves 1 piece from an inital location
-    # to a target location, without affecting any other piece except for
-    # the target
     DEFAULT:int = 0
-    CASTLE_KING_SIDE:int = 1
-    CASTLE_QUEEN_SIDE:int = 2
-    PROMOTION:int = 3
-    ENPASSANT:int = 4
+    CAPTURE:int = 1
+    CASTLE_KING_SIDE:int = 2
+    CASTLE_QUEEN_SIDE:int = 3
+    PROMOTION:int = 4
+    ENPASSANT:int = 5
 
 
 
