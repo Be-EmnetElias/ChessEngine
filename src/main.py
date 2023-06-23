@@ -14,7 +14,7 @@ class Main:
         self.screen = pygame.display.set_mode((800,800))
         pygame.display.set_caption("Chess")
 
-        self.Board = Board("")
+        self.Board = Board("test_castle")
 
         # Create background
         self.bg = pygame.image.load("assets\\imgs\\bg_green.png")

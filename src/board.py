@@ -67,7 +67,7 @@ class Board:
         FENSTRING (str): a valid FEN string
         '''
 
-        if FENSTRING == "default":
+        if FENSTRING == "":
             FENSTRING = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 
         if FENSTRING == "random":
@@ -79,11 +79,19 @@ class Board:
         if FENSTRING == "knight_only":
             FENSTRING = "8/4N3/8/8/8/8/8/8 w - - 0 59"
 
+        if FENSTRING == "test_castle":
+            FENSTRING = "4k2r/6r1/8/8/8/8/3R4/R3K3 w Qk - 0 1"
+
 
         board_information = FENSTRING.split(" ")
         position = board_information[0]
         turn = board_information[1]
+        castle_rights = board_information[2]
+        enpassant_squares = board_information[3]
+        halfmoves = board_information[4]
 
+
+        self.WHITE_TURN = True if turn == "w" else False
         row, col = 0, 0
 
         for c in position:
@@ -155,8 +163,33 @@ class Board:
 
             if(col >=8):
                 col = 0
+        
+        white_king = self.get_king(True)
+        black_king = self.get_king(False)
+        white_rook_queen_side = self.get_piece((0,7)) if self.get_piece((0,7)).name == Name.ROOK else None
+        white_rook_king_side = self.get_piece((7,7)) if self.get_piece((7,7)).name == Name.ROOK else None
+        black_rook_queen_side = self.get_piece((0,0)) if self.get_piece((0,0)).name == Name.ROOK else None
+        black_rook_king_side = self.get_piece((7,0)) if self.get_piece((7,0)).name == Name.ROOK else None
+
+        
+        if not(castle_rights == "-"):
+            for c in castle_rights:
+                if not c == "K" and white_rook_king_side:
+                    white_rook_king_side.first_move = False
+                if not c == "Q" and white_rook_queen_side:
+                    white_rook_queen_side.first_move = False
+                if not c == "k" and black_rook_king_side:
+                    black_rook_king_side.first_move = False
+                if not c == "q" and black_rook_queen_side:
+                    black_rook_queen_side.first_move = False
+
+
         self.LEGAL_MOVES = self.all_legal_moves()
 
+    def get_position_fenstring(self) -> str:
+        result = ""
+        return result
+    
     def print_board(self) -> None:
         for row in range(8):
             for col in range(8):
@@ -317,21 +350,7 @@ class Board:
         print("\n")
 
     def undo_move(self, moved_pieces: set()) -> None:
-        for move in moved_pieces:
-            piece, _, original_position = move
-            original_col, original_row = original_position
-
-            # Place the deep copy back to its original position
-            self.board[original_row][original_col] = piece
-
-            # print(f"undoing {piece} back to {list(original_position)}")
-
-            # If the piece is not None, update its position attributes
-            if piece:
-                piece.col = original_col
-                piece.row = original_row
-                piece.x = original_col * 100
-                piece.y = original_row * 100
+        pass
 
         
     def all_legal_moves(self) -> dict():
