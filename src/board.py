@@ -16,6 +16,7 @@ Given a position from main.py, the following will need to happen:
     TODO: Make the visuals and sounds more interesting. Add visuals for spaces in check, move history, move hints and drag highlights. 
     Also add sounds for piece moves, captures, check and checkmate
 
+    TESTING GIT PUSH TEST TEST
 '''
 
 from piece import Name
@@ -66,7 +67,7 @@ class Board:
         FENSTRING (str): a valid FEN string
         '''
 
-        if FENSTRING == "":
+        if FENSTRING == "default":
             FENSTRING = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 
         if FENSTRING == "random":
@@ -166,7 +167,7 @@ class Board:
                     print(". ",end="")
             print("\n")
 
-    def user_valid_move(self, piece: Piece, position:tuple) -> tuple:
+    def user_valid_move(self, piece: Piece, position:tuple()) -> tuple:
         '''
         Returns True if the user move was a valid move, False otherwise. All valid moves are already calculated.
         '''
@@ -189,7 +190,7 @@ class Board:
         
         return (valid,move_type)
     
-    def move_piece(self, piece: Piece, position: tuple, simulation: bool) -> set:
+    def move_piece(self, piece: Piece, position: tuple(), simulation: bool) -> set():
         '''
         Moves this piece to this position <- a tuple containing location and move type. 
         Assumes that this move is legal. Updates the board, move history...
@@ -226,6 +227,10 @@ class Board:
             piece.col = target_col
             piece.row = target_row
 
+            if not simulation:
+                piece.x = target_col * 100
+                piece.y = target_row * 100
+
         if move_type == MoveType.CASTLE_KING_SIDE:  # When storing if using move number as key, then don't update the castling as a separate move maybe
             rook = self.get_piece((7,7)) if piece.is_white else self.get_piece((7,0))
             result.add((deepcopy(self.get_piece((target_col-1,rook.row))),None,(target_col-1,rook.row)))
@@ -238,6 +243,11 @@ class Board:
 
             rook.col = target_col-1
             rook.row = target_row
+
+            if not simulation:
+                rook.x = rook.col * 100
+                rook.y = rook.row * 100
+
 
         if move_type == MoveType.CASTLE_QUEEN_SIDE:
             rook = self.get_piece((0,7)) if piece.is_white else self.get_piece((0,0))
@@ -252,6 +262,10 @@ class Board:
             rook.col = target_col+1
             rook.row = target_row
 
+            if not simulation:
+                rook.x = rook.col * 100
+                rook.y = rook.row * 100
+
         if move_type == MoveType.PROMOTION: # Eventually will need to ask what type of promotion
             result.add((deepcopy(piece),position,(previous_col,previous_row)))
 
@@ -263,6 +277,10 @@ class Board:
 
             piece.col = target_col
             piece.row = target_row
+
+            if not simulation:
+                piece.x = target_col * 100
+                piece.y = target_row * 100
 
             piece.name = Name.QUEEN
             piece.img_index = 1 if piece.is_white else 7
@@ -281,21 +299,14 @@ class Board:
 
         if not simulation:
             self.LEGAL_MOVES = self.all_legal_moves()
-            
-
-        print(f"CURRENT PIECES: ",end=" ")
-        for p in self.get_pieces(None):
-            print(f"{p}",end="")
-
-        self.print_board()
-
 
         self.MOVE_NUMBER += 1
 
+        
 
         return result
     
-    def print_move(self, result: set) -> None:
+    def print_move(self, result: set()) -> None:
         print(f"MOVE NUMBER {self.MOVE_NUMBER}:", end=' ')
         for move in result:
             piece, target_position, previous_position = move
@@ -305,7 +316,7 @@ class Board:
                 print(f"{piece} from {previous_position} was captured", end=' ')
         print("\n")
 
-    def undo_move(self, moved_pieces: set) -> None:
+    def undo_move(self, moved_pieces: set()) -> None:
         for move in moved_pieces:
             piece, _, original_position = move
             original_col, original_row = original_position
@@ -319,10 +330,11 @@ class Board:
             if piece:
                 piece.col = original_col
                 piece.row = original_row
-                
+                piece.x = original_col * 100
+                piece.y = original_row * 100
 
         
-    def all_legal_moves(self) -> dict:
+    def all_legal_moves(self) -> dict():
         '''
         Iterates through each piece on the board and calculates possible legal moves
         
@@ -337,7 +349,7 @@ class Board:
 
         return legal_moves
 
-    def legal_moves(self, piece: Piece, check_for_checkmate: bool) -> set:
+    def legal_moves(self, piece: Piece, check_for_checkmate: bool) -> set():
         self.update_all_pinned_pieces()
 
         if piece.name == Name.PAWNW or piece.name == Name.PAWNB:
@@ -372,7 +384,7 @@ class Board:
 
         return legal_moves
 
-    def legal_moves_king(self, piece: Piece, check_for_checkmate: bool) -> set:
+    def legal_moves_king(self, piece: Piece, check_for_checkmate: bool) -> set():
         king_moves = set()
         displacements = self.PSEUDO_LEGAL_MOVEMENT[Name.KING]
 
@@ -401,7 +413,7 @@ class Board:
 
         return king_moves
     
-    def legal_moves_pawn(self, piece: Piece, check_for_checkmate: bool) -> set:
+    def legal_moves_pawn(self, piece: Piece, check_for_checkmate: bool) -> set():
         pawn_moves = set()
         displacements = self.PSEUDO_LEGAL_MOVEMENT[piece.name]
 
@@ -438,7 +450,7 @@ class Board:
 
         return pawn_moves
 
-    def king_safe_after_move(self,piece: Piece, pos: tuple, check_for_checkmate: bool) -> bool:
+    def king_safe_after_move(self,piece: Piece, pos: tuple(), check_for_checkmate: bool) -> bool:
         '''
         Only calculated when checking for checkmate. Simulates the move, then checks if this pieces king is on a square being
         attacked by the enemy team
@@ -447,8 +459,6 @@ class Board:
             return True
         
         spaces_in_check = set()
-
-        
         
         return True
     
@@ -529,14 +539,14 @@ class Board:
         
         return not (A.is_white == B.is_white)
         
-    def get_piece(self, pos: tuple) -> Piece:
+    def get_piece(self, pos: tuple()) -> Piece:
         '''
         Returns the Piece at this position
         '''
         col, row = pos
         return self.board[row][col]
     
-    def position_valid(self,pos: tuple) -> bool:
+    def position_valid(self,pos: tuple()) -> bool:
         '''
         Return True if the position is within the 8 x 8 board
         '''
@@ -544,7 +554,7 @@ class Board:
         col,row = pos
         return col<=7 and col>=0 and row<=7 and row>=0
         
-    def get_pieces(self, is_white: bool) -> set:
+    def get_pieces(self, is_white: bool) -> set():
         '''
         Returns the pieces of this team. is_white can be True for white pieces
         False for black pieces and None for all pieces
