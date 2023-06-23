@@ -14,7 +14,7 @@ class Main:
         self.screen = pygame.display.set_mode((800,800))
         pygame.display.set_caption("Chess")
 
-        self.Board = Board("random")
+        self.Board = Board("")
 
         # Create background
         self.bg = pygame.image.load("assets\\imgs\\bg_green.png")
@@ -140,6 +140,8 @@ class Main:
                         if play_sound:
                             self.play_sound(move_type)
                         move_hints = None
+                        clicked_piece.x = col * 100
+                        clicked_piece.y = row * 100
                         
                     else: # Reset Piece
                         clicked_piece.x = clicked_piece.col * 100
