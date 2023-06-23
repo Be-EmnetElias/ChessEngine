@@ -16,7 +16,6 @@ Given a position from main.py, the following will need to happen:
     TODO: Make the visuals and sounds more interesting. Add visuals for spaces in check, move history, move hints and drag highlights. 
     Also add sounds for piece moves, captures, check and checkmate
 
-    TESTING GIT PUSH TEST TEST
 '''
 
 from piece import Name
