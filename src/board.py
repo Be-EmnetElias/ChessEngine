@@ -16,7 +16,7 @@ Given a position from main.py, the following will need to happen:
     TODO: Make the visuals and sounds more interesting. Add visuals for spaces in check, move history, move hints and drag highlights. 
     Also add sounds for piece moves, captures, check and checkmate
 
-    TEST 3
+    TODO: Something is completely wrong with the movement system. Even after saving fen string and setting the board again, the board goes crazy and pieces are everywhere. VERY BAD
 '''
 
 from piece import Name
@@ -56,9 +56,9 @@ class Board:
 
         
         print(f'Setting board to {initial_position} position')
-        self.setBoard(initial_position)
+        self.setBoard(initial_position, simulation=False)
 
-    def setBoard(self, FENSTRING: str) -> None:
+    def setBoard(self, FENSTRING: str, simulation: bool) -> None:
         '''
         Sets the board according to the initialPosition parameter. Use "default" for standard chess game or
         a valid FEN string.
@@ -71,7 +71,7 @@ class Board:
             FENSTRING = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 
         if FENSTRING == "random":
-            FENSTRING = "rnbqk2r/pppp1ppp/5n2/2b1p3/8/4PN2/PPPPBPPP/RNBQK2R w KQkq - 4 4";
+            FENSTRING = "rnbqkbnr/p1p1pppp/1p6/3pP3/8/8/PPPP1PPP/RNBQKBNR w KQkq d6 0 3";
         
         if FENSTRING == "castle_king_side":
             FENSTRING = "r3kb1r/ppp1pppp/2nq1n2/5b2/2BP4/2N1PN2/PP3PPP/R1BQK2R w KQkq - 3 7"
@@ -79,10 +79,13 @@ class Board:
         if FENSTRING == "knight_only":
             FENSTRING = "8/4N3/8/8/8/8/8/8 w - - 0 59"
 
+        if FENSTRING == "pawn_only":
+            FENSTRING = "8/8/8/8/8/8/4P3/8 w - - 0 59"
+
         if FENSTRING == "test_castle":
             FENSTRING = "4k2r/6r1/8/8/8/8/3R4/R3K3 w Qk - 0 1"
 
-
+        print(FENSTRING)
         board_information = FENSTRING.split(" ")
         position = board_information[0]
         turn = board_information[1]
@@ -166,29 +169,127 @@ class Board:
         
         white_king = self.get_king(True)
         black_king = self.get_king(False)
-        white_rook_queen_side = self.get_piece((0,7)) if self.get_piece((0,7)).name == Name.ROOK else None
-        white_rook_king_side = self.get_piece((7,7)) if self.get_piece((7,7)).name == Name.ROOK else None
-        black_rook_queen_side = self.get_piece((0,0)) if self.get_piece((0,0)).name == Name.ROOK else None
-        black_rook_king_side = self.get_piece((7,0)) if self.get_piece((7,0)).name == Name.ROOK else None
+        white_rook_queen_side = self.get_piece((0,7)) if self.get_piece((0,7)) and self.get_piece((0,7)).name == Name.ROOK else None
+        white_rook_king_side = self.get_piece((7,7)) if self.get_piece((7,7)) and self.get_piece((7,7)).name == Name.ROOK else None
+        black_rook_queen_side = self.get_piece((0,0)) if self.get_piece((0,0)) and self.get_piece((0,0)).name == Name.ROOK else None
+        black_rook_king_side = self.get_piece((7,0)) if self.get_piece((7,0)) and self.get_piece((7,0)).name == Name.ROOK else None
 
-        
+        if white_rook_queen_side:
+            white_rook_queen_side.first_move = False
+        if white_rook_king_side:
+            white_rook_king_side.first_move = False
+        if black_rook_king_side:
+            black_rook_king_side.first_move = False
+        if black_rook_queen_side:
+            black_rook_queen_side.first_move = False
+
         if not(castle_rights == "-"):
             for c in castle_rights:
-                if not c == "K" and white_rook_king_side:
-                    white_rook_king_side.first_move = False
-                if not c == "Q" and white_rook_queen_side:
-                    white_rook_queen_side.first_move = False
-                if not c == "k" and black_rook_king_side:
-                    black_rook_king_side.first_move = False
-                if not c == "q" and black_rook_queen_side:
-                    black_rook_queen_side.first_move = False
+                if c == "-":
+                    continue
+                if c == "K" and white_rook_king_side:
+                    white_rook_king_side.first_move = True
+                if c == "Q" and white_rook_queen_side:
+                    white_rook_queen_side.first_move = True
+                if c == "k" and black_rook_king_side:
+                    black_rook_king_side.first_move = True
+                if c == "q" and black_rook_queen_side:
+                    black_rook_queen_side.first_move = True
 
+        if not(enpassant_squares == "-"):
+            square_conversion = {
+                'a': 0,
+                'b': 1,
+                'c': 2,
+                'd': 3,
+                'e': 4,
+                'f': 5,
+                'g': 6,
+                'h': 7,
+            }
+            row = 8-int(enpassant_squares[1])
+            col = int(square_conversion[enpassant_squares[0]])
+            dy = -1 if row > 6 else 1
+            enpassant_piece = self.get_piece((col,row+dy))
+            if enpassant_piece:
+                enpassant_piece.enPassant = True
 
-        self.LEGAL_MOVES = self.all_legal_moves()
+        if not simulation:
+            self.LEGAL_MOVES = self.all_legal_moves()
+        #print(f"{FENSTRING}")
+        
 
     def get_position_fenstring(self) -> str:
         result = ""
-        return result
+        enpassant_piece = list()
+        for row in range(8):
+            empty_space_count = 0
+            for col in range(8):
+                piece = self.get_piece((col,row))
+                if piece and piece.enPassant:
+                    enpassant_piece.append((col,row))
+                if piece:
+                    if empty_space_count > 0:
+                        result += str(empty_space_count)
+                        empty_space_count = 0
+
+                    result += piece.get_letter()
+                
+                else:
+                    empty_space_count+=1
+                    if col == 7 and empty_space_count > 0:
+                        result += str(empty_space_count)
+            if row != 7:
+                result += "/"
+        
+        turn = " w " if self.WHITE_TURN else " b "
+        result += turn
+        
+        count = 0
+        if self.get_piece((7,7)) and self.get_piece((7,7)).name == Name.ROOK and self.get_piece((7,7)).first_move and self.get_king(True).first_move:
+            result += "K"
+        else:
+            count+=1
+        if self.get_piece((0,7)) and self.get_piece((0,7)).name == Name.ROOK and self.get_piece((0,7)).first_move and self.get_king(True).first_move:
+            result += "Q"
+        else:
+            count+=1
+        if self.get_piece((7,0)) and self.get_piece((7,0)).name == Name.ROOK and self.get_piece((7,0)).first_move and self.get_king(False).first_move:
+            result += "k"
+        else:
+            count+=1
+        if self.get_piece((0,0)) and self.get_piece((0,0)).name == Name.ROOK and self.get_piece((0,0)).first_move and self.get_king(False).first_move:
+            result += "q"
+        else:
+            count+=1
+
+        if count == 4:
+            result += "-"
+        
+        square_conversion = {
+                0: 'a',
+                1: 'b',
+                2: 'c',
+                3: 'd',
+                4: 'e',
+                5: 'f',
+                6: 'g',
+                7: 'h'
+        }
+
+        if len(enpassant_piece) > 0:
+            result += " "
+            col, row = enpassant_piece[0]
+            dy = 1 if row > 6 else -1
+            result += str(square_conversion[row])
+            result += str(8-col-dy)
+        else:
+            result += " -"
+
+        result += " random"
+            
+        print(f"{result}")
+        return result 
     
     def print_board(self) -> None:
         for row in range(8):
@@ -240,9 +341,6 @@ class Board:
         # self.update_all_legal_moves() # Now that the board position has changed, update the next set of legal moves
         
         result = set()
-
-        if simulation:
-            piece = deepcopy(piece)
 
         previous_col, previous_row = piece.getPos()
         target_col, target_row, move_type = position
@@ -334,9 +432,6 @@ class Board:
             self.LEGAL_MOVES = self.all_legal_moves()
 
         self.MOVE_NUMBER += 1
-
-        
-
         return result
     
     def print_move(self, result: set()) -> None:
@@ -478,7 +573,11 @@ class Board:
             return True
         
         spaces_in_check = set()
-        
+        print(f"Simulating {piece} to {str(list(pos))}")
+        current = self.get_position_fenstring()
+        self.move_piece(piece,pos,simulation=True)
+        self.print_board()
+        self.setBoard(current,simulation=True)
         return True
     
     def update_all_pinned_pieces(self) -> None:
