@@ -347,11 +347,8 @@ class Board:
         target = (target_col, target_row)
 
         if move_type in(MoveType.DEFAULT, MoveType.ENPASSANT, MoveType.CASTLE_KING_SIDE, MoveType.CASTLE_QUEEN_SIDE):
-            result.add((deepcopy(piece),target,piece.getPos()))
 
             captured_piece = self.get_piece((target_col,target_row))
-
-            result.add((deepcopy(captured_piece),None,(target_col,target_row)))
             self.board[target_row][target_col] = piece
             self.board[previous_row][previous_col] = None
 
@@ -364,8 +361,6 @@ class Board:
 
         if move_type == MoveType.CASTLE_KING_SIDE:  # When storing if using move number as key, then don't update the castling as a separate move maybe
             rook = self.get_piece((7,7)) if piece.is_white else self.get_piece((7,0))
-            result.add((deepcopy(self.get_piece((target_col-1,rook.row))),None,(target_col-1,rook.row)))
-            result.add((deepcopy(rook),(target_col-1,target_row),(rook.col,rook.row)))
             
             self.board[target_row][target_col-1] = rook
             self.board[rook.row][rook.col] = None
@@ -382,8 +377,6 @@ class Board:
 
         if move_type == MoveType.CASTLE_QUEEN_SIDE:
             rook = self.get_piece((0,7)) if piece.is_white else self.get_piece((0,0))
-            result.add((deepcopy(self.get_piece((target_col+1,rook.row))),None,(target_col+1,rook.row)))
-            result.add((deepcopy(rook),(target_col+1,target_row),(rook.col,rook.row)))
 
             self.board[target_row][target_col+1] = rook
             self.board[rook.row][rook.col] = None
@@ -398,11 +391,9 @@ class Board:
                 rook.y = rook.row * 100
 
         if move_type == MoveType.PROMOTION: # Eventually will need to ask what type of promotion
-            result.add((deepcopy(piece),position,(previous_col,previous_row)))
 
             captured_piece = self.get_piece((target_col,target_row))
 
-            result.add((deepcopy(captured_piece),None,(target_col,target_row)))
             self.board[target_row][target_col] = piece
             self.board[previous_row][previous_col] = None
 
@@ -418,7 +409,6 @@ class Board:
             piece.can_slide = True
 
         if move_type == MoveType.ENPASSANT:
-            result.add((deepcopy(self.get_piece((target_col,previous_row))),None,(target_col,previous_row)))
             self.board[previous_row][target_col] = None
 
         for p in self.get_pieces(None): # Enpassant is only allowed for one turn
@@ -574,10 +564,59 @@ class Board:
         
         spaces_in_check = set()
         print(f"Simulating {piece} to {str(list(pos))}")
-        current = self.get_position_fenstring()
-        self.move_piece(piece,pos,simulation=True)
-        self.print_board()
-        self.setBoard(current,simulation=True)
+        previous_col, previous_row = piece.getPos()
+        target_col, target_row, move_type = pos
+        target = (target_col, target_row)
+
+        if move_type in(MoveType.DEFAULT, MoveType.ENPASSANT, MoveType.CASTLE_KING_SIDE, MoveType.CASTLE_QUEEN_SIDE):
+
+            captured_piece = self.get_piece((target_col,target_row))
+            self.board[target_row][target_col] = piece
+            self.board[previous_row][previous_col] = None
+
+            piece.col = target_col
+            piece.row = target_row
+
+        if move_type == MoveType.CASTLE_KING_SIDE:  # When storing if using move number as key, then don't update the castling as a separate move maybe
+            rook = self.get_piece((7,7)) if piece.is_white else self.get_piece((7,0))
+            
+            self.board[target_row][target_col-1] = rook
+            self.board[rook.row][rook.col] = None
+
+            rook = self.board[target_row][target_col-1]
+
+            rook.col = target_col-1
+            rook.row = target_row
+
+        if move_type == MoveType.CASTLE_QUEEN_SIDE:
+            rook = self.get_piece((0,7)) if piece.is_white else self.get_piece((0,0))
+
+            self.board[target_row][target_col+1] = rook
+            self.board[rook.row][rook.col] = None
+
+            rook = self.board[target_row][target_col+1]
+
+            rook.col = target_col+1
+            rook.row = target_row
+
+        if move_type == MoveType.PROMOTION: # Eventually will need to ask what type of promotion
+
+            captured_piece = self.get_piece((target_col,target_row))
+
+            self.board[target_row][target_col] = piece
+            self.board[previous_row][previous_col] = None
+
+            piece.col = target_col
+            piece.row = target_row
+
+            piece.name = Name.QUEEN
+            piece.img_index = 1 if piece.is_white else 7
+            piece.can_slide = True
+
+        if move_type == MoveType.ENPASSANT:
+            self.board[previous_row][target_col] = None
+        
+        
         return True
     
     def update_all_pinned_pieces(self) -> None:
