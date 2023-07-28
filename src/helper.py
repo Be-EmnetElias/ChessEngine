@@ -1,5 +1,7 @@
 from enum import Enum, auto
 
+
+        
 class Name(Enum):
     PAWNW:int = 0
     PAWNB:int = 1
@@ -35,16 +37,13 @@ class MoveType(Enum):
     PROMOTION:int = 4
     ENPASSANT:int = 5
 
-
-
 class GameState(Enum):
     ACTIVE:int=0
     STALEMATE:int=1
     BLACKWON:int=2
     WHITEWON:int=3
     INSUFFICIENT_MATERIAL:int=4
-    
-    
+
 class Piece:
 
     def __init__(self, name: Name, color: bool, col: int, row: int, imgIndex: int) -> None:
@@ -78,3 +77,15 @@ class Piece:
 
         return str(self.name)[5:6]
         
+class Move:
+
+    def __init__(self, piece: Piece, captured_piece: Piece, previous_position: tuple(), target_position: tuple(), move_type: MoveType) -> None:
+        
+        self.piece = piece
+        self.captured_piece = captured_piece
+        self.previous_position = previous_position
+        self.target_position = target_position
+        self.move_type = move_type
+
+    def __str__(self) -> str:
+        return f"{self.move_type}: {self.piece.name} to {self.target_position} { f'capturing {self.captured_piece.name}' if self.captured_piece else ''}"

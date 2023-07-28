@@ -23,6 +23,7 @@ from helper import Name
 from helper import Piece
 from helper import MoveType
 from helper import GameState
+from helper import Move
 
 class Board:
 
@@ -314,11 +315,13 @@ class Board:
             col, row, type_of_move = move
             if position == (col,row):
                 # Pass the legal move containing the move type
-                valid = self.WHITE_TURN
+                valid = True # TODO: TURNS piece.is_white == self.WHITE_TURN
                 move_type = type_of_move
+                
                 if self.are_enemies(piece,self.get_piece((col,row))) and move_type == MoveType.DEFAULT:
                     move_type = MoveType.CAPTURE
-                self.move_piece(piece,move, simulation=False)
+                if valid:
+                    self.move_piece(piece,move, simulation=False)
         
         return (valid,move_type)
     
@@ -333,14 +336,11 @@ class Board:
 
         Note: This function may end up too large and should be broken into smaller functions
         '''
-        # self.set_piece(piece,position,simulation)
-        # self.move_extra_pieces(piece,position,simulation)
-        # self.update_all_piece_attributes(piece,position)
-        # self.update_all_legal_moves() # Now that the board position has changed, update the next set of legal moves
         
-        result = set()
+        result = list()
 
-        previous_col, previous_row = piece.getPos()
+        previous_position = piece.getPos()
+        previous_col, previous_row = previous_position
         target_col, target_row, move_type = position
         target = (target_col, target_row)
 
@@ -357,9 +357,12 @@ class Board:
                 piece.x = target_col * 100
                 piece.y = target_row * 100
 
+            result.append(Move(piece,captured_piece,previous_position, target, move_type))
+
         if move_type == MoveType.CASTLE_KING_SIDE:  # When storing if using move number as key, then don't update the castling as a separate move maybe
             rook = self.get_piece((7,7)) if piece.is_white else self.get_piece((7,0))
             
+            previous_position = rook.getPos()
             self.board[target_row][target_col-1] = rook
             self.board[rook.row][rook.col] = None
 
@@ -372,6 +375,7 @@ class Board:
                 rook.x = rook.col * 100
                 rook.y = rook.row * 100
 
+            result.append(Move(rook,None,previous_position,(target_col-1,target_row),MoveType.DEFAULT))
 
         if move_type == MoveType.CASTLE_QUEEN_SIDE:
             rook = self.get_piece((0,7)) if piece.is_white else self.get_piece((0,0))
@@ -387,6 +391,9 @@ class Board:
             if not simulation:
                 rook.x = rook.col * 100
                 rook.y = rook.row * 100
+
+            result.append(Move(rook,None,previous_position,(target_col+1,target_row),MoveType.DEFAULT))
+            
 
         if move_type == MoveType.PROMOTION: # Eventually will need to ask what type of promotion
 
@@ -406,30 +413,24 @@ class Board:
             piece.img_index = 1 if piece.is_white else 7
             piece.can_slide = True
 
+            result.append(Move(piece,captured_piece,previous_position,(target_col+1,target_row),MoveType.PROMOTION))
+
         if move_type == MoveType.ENPASSANT:
             self.board[previous_row][target_col] = None
 
-        for p in self.get_pieces(None): # Enpassant is only allowed for one turn
-            p.enPassant = False
-        
-        piece.enPassant = (piece.name == Name.PAWNW or piece.name == Name.PAWNB) and piece.first_move and abs(target_row-previous_row) == 2
+        if not simulation:
+            for p in self.get_pieces(None): # Enpassant is only allowed for one turn
+                p.enPassant = False
+            
+            piece.enPassant = (piece.name == Name.PAWNW or piece.name == Name.PAWNB) and piece.first_move and abs(target_row-previous_row) == 2
 
-        piece.first_move = False
+            piece.first_move = False
 
-        self.MOVE_NUMBER += 1
-        self.WHITE_TURN = not self.WHITE_TURN
-        self.update_game_status()
+            self.MOVE_NUMBER += 1
+            self.WHITE_TURN = not self.WHITE_TURN
+            self.update_game_status()
+
         return result
-    
-    def print_move(self, result: set()) -> None:
-        print(f"MOVE NUMBER {self.MOVE_NUMBER}:", end=' ')
-        for move in result:
-            piece, target_position, previous_position = move
-            if target_position:
-                print(f"{piece} moved from {previous_position} to {target_position}", end=' ')
-            else:
-                print(f"{piece} from {previous_position} was captured", end=' ')
-        print("\n")
 
     def undo_move(self, moved_pieces: set()) -> None:
         pass
@@ -577,7 +578,7 @@ class Board:
         captured_piece = None
         previous_name = piece.name
 
-        if move_type in(MoveType.DEFAULT, MoveType.CASTLE_KING_SIDE, MoveType.CASTLE_QUEEN_SIDE):
+        if move_type in (MoveType.DEFAULT, MoveType.CASTLE_KING_SIDE, MoveType.CASTLE_QUEEN_SIDE):
 
             captured_piece = self.get_piece((target_col,target_row))
             self.board[target_row][target_col] = piece
@@ -587,7 +588,7 @@ class Board:
             piece.row = target_row
 
 
-        if move_type == MoveType.CASTLE_KING_SIDE:  # When storing if using move number as key, then don't update the castling as a separate move maybe
+        if move_type == MoveType.CASTLE_KING_SIDE: 
             rook = self.get_piece((7,7)) if piece.is_white else self.get_piece((7,0))
             
             self.board[target_row][target_col-1] = rook
@@ -630,6 +631,8 @@ class Board:
 
             piece.col = target_col
             piece.row = target_row
+
+        
 
         king = self.get_king(piece.is_white).getPos()
 
@@ -806,5 +809,4 @@ class Board:
                     pieces.add(piece)
         return pieces
         
-
 

@@ -18,11 +18,11 @@ class Main:
         self.Board = Board(self.initial_position)
 
         # Create background
-        self.bg = pygame.image.load("assets\\imgs\\bg_green.png")
+        self.bg = pygame.image.load("src\\assets\\imgs\\bg_red.png")
         self.bg = pygame.transform.scale(self.bg,(800,800))
         
         # Slice pieces.png into separate pieces
-        pieces = pygame.image.load("assets\\imgs\\pieces.png")
+        pieces = pygame.image.load("src\\assets\\imgs\\pieces.png")
         piece_width = pieces.get_width() // 6
         piece_height = pieces.get_height() // 2
 
@@ -46,12 +46,12 @@ class Main:
         
         # Set up dictionary of move types to sounds
         self.sounds = {
-            MoveType.DEFAULT: mixer.Sound("assets\\sounds\\DEFAULT.wav"),
-            MoveType.ENPASSANT: mixer.Sound("assets\\sounds\\CAPTURE.wav"),
-            MoveType.CAPTURE: mixer.Sound("assets\\sounds\\CAPTURE.wav"),
-            MoveType.CASTLE_KING_SIDE: mixer.Sound("assets\\sounds\\CASTLE.wav"),
-            MoveType.CASTLE_QUEEN_SIDE: mixer.Sound("assets\\sounds\\CASTLE.wav"),
-            MoveType.PROMOTION: mixer.Sound("assets\\sounds\\PROMOTION.wav")
+            MoveType.DEFAULT: mixer.Sound("src\\assets\\sounds\\DEFAULT.wav"),
+            MoveType.ENPASSANT: mixer.Sound("src\\assets\\sounds\\CAPTURE.wav"),
+            MoveType.CAPTURE: mixer.Sound("src\\assets\\sounds\\CAPTURE.wav"),
+            MoveType.CASTLE_KING_SIDE: mixer.Sound("src\\assets\\sounds\\CASTLE.wav"),
+            MoveType.CASTLE_QUEEN_SIDE: mixer.Sound("src\\assets\\sounds\\CASTLE.wav"),
+            MoveType.PROMOTION: mixer.Sound("src\\assets\\sounds\\PROMOTION.wav")
         }
 
 
