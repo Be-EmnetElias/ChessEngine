@@ -1,10 +1,10 @@
 import pygame
 import sys
-import numpy as np
 
 from board import Board
 from pygame import mixer
-from piece import MoveType
+from helper import MoveType
+from helper import GameState
 
 class Main:
 
@@ -14,7 +14,8 @@ class Main:
         self.screen = pygame.display.set_mode((800,800))
         pygame.display.set_caption("Chess")
 
-        self.Board = Board("pawn_only")
+        self.initial_position = "default"
+        self.Board = Board(self.initial_position)
 
         # Create background
         self.bg = pygame.image.load("assets\\imgs\\bg_green.png")
@@ -85,8 +86,10 @@ class Main:
                     else:
                         pygame.draw.rect(self.screen,self.move_hint_color,pygame.Rect(col*100,row*100,100,100))
 
-
+            
             for event in pygame.event.get():
+                
+                GAME_STATE = self.Board.GAME_STATE
 
                 clicked_x_col, clicked_y_row = pygame.mouse.get_pos()
                 clicked_x_col = clicked_x_col//100 * 100
@@ -107,8 +110,13 @@ class Main:
                         hint_status = "showing hints" if show_hint else "hiding hints"
                         print(f"{hint_status}")
 
+                    # click 'r'
+                    if event.key == pygame.K_r:
+                        self.Board.setBoard(self.initial_position)
+                        print(f"Board reset to {self.initial_position}")
+
                 # click
-                if event.type == pygame.MOUSEBUTTONDOWN:
+                if event.type == pygame.MOUSEBUTTONDOWN and GAME_STATE == GameState.ACTIVE:
 
                     clicked_row = event.pos[1] // 100
                     clicked_col = event.pos[0] // 100
@@ -122,7 +130,7 @@ class Main:
                     #print(f"{clicked_piece} was clicked at {clicked_col},{clicked_row}")
                 
                 # mouse motion
-                elif event.type == pygame.MOUSEMOTION:
+                elif event.type == pygame.MOUSEMOTION and GAME_STATE == GameState.ACTIVE:
                     
                     if clicked_piece:
                         clicked_piece.x = event.pos[0] - 40
@@ -130,7 +138,7 @@ class Main:
 
 
                 # release click
-                elif clicked_piece and event.type == pygame.MOUSEBUTTONUP:
+                elif clicked_piece and event.type == pygame.MOUSEBUTTONUP and GAME_STATE == GameState.ACTIVE:
                     x,y = event.pos
                     col, row = x//100, y//100
 

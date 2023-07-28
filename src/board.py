@@ -16,14 +16,13 @@ Given a position from main.py, the following will need to happen:
     TODO: Make the visuals and sounds more interesting. Add visuals for spaces in check, move history, move hints and drag highlights. 
     Also add sounds for piece moves, captures, check and checkmate
 
-    TODO: Something is completely wrong with the movement system. Even after saving fen string and setting the board again, the board goes crazy and pieces are everywhere. VERY BAD
+    
 '''
 
-from piece import Name
-from piece import Piece
-from piece import MoveType
-from piece import GameState
-from copy import deepcopy
+from helper import Name
+from helper import Piece
+from helper import MoveType
+from helper import GameState
 
 class Board:
 
@@ -56,9 +55,9 @@ class Board:
 
         
         print(f'Setting board to {initial_position} position')
-        self.setBoard(initial_position, simulation=False)
+        self.setBoard(initial_position)
 
-    def setBoard(self, FENSTRING: str, simulation: bool) -> None:
+    def setBoard(self, FENSTRING: str) -> None:
         '''
         Sets the board according to the initialPosition parameter. Use "default" for standard chess game or
         a valid FEN string.
@@ -67,11 +66,12 @@ class Board:
         FENSTRING (str): a valid FEN string
         '''
 
-        if FENSTRING == "":
+        self.GAME_STATE = GameState.ACTIVE
+        if FENSTRING == "default":
             FENSTRING = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 
         if FENSTRING == "random":
-            FENSTRING = "rnbqkbnr/p1p1pppp/1p6/3pP3/8/8/PPPP1PPP/RNBQKBNR w KQkq d6 0 3";
+            FENSTRING = "rnbqkbnr/p1p1pppp/1p6/3pP3/8/8/PPPP1PPP/RNBQKBNR w KQkq d6 0 3"
         
         if FENSTRING == "castle_king_side":
             FENSTRING = "r3kb1r/ppp1pppp/2nq1n2/5b2/2BP4/2N1PN2/PP3PPP/R1BQK2R w KQkq - 3 7"
@@ -93,6 +93,9 @@ class Board:
         enpassant_squares = board_information[3]
         halfmoves = board_information[4]
 
+        for row in range(8):
+            for col in range(8):
+                self.board[row][col] = None
 
         self.WHITE_TURN = True if turn == "w" else False
         row, col = 0, 0
@@ -161,7 +164,7 @@ class Board:
             if name:
                 self.board[row][col] = Piece(name,color,col,row,ind)
 
-                    
+               
             col+=1
 
             if(col >=8):
@@ -213,11 +216,6 @@ class Board:
             enpassant_piece = self.get_piece((col,row+dy))
             if enpassant_piece:
                 enpassant_piece.enPassant = True
-
-        if not simulation:
-            self.LEGAL_MOVES = self.all_legal_moves()
-        #print(f"{FENSTRING}")
-        
 
     def get_position_fenstring(self) -> str:
         result = ""
@@ -316,7 +314,7 @@ class Board:
             col, row, type_of_move = move
             if position == (col,row):
                 # Pass the legal move containing the move type
-                valid = True
+                valid = self.WHITE_TURN
                 move_type = type_of_move
                 if self.are_enemies(piece,self.get_piece((col,row))) and move_type == MoveType.DEFAULT:
                     move_type = MoveType.CAPTURE
@@ -347,11 +345,8 @@ class Board:
         target = (target_col, target_row)
 
         if move_type in(MoveType.DEFAULT, MoveType.ENPASSANT, MoveType.CASTLE_KING_SIDE, MoveType.CASTLE_QUEEN_SIDE):
-            result.add((deepcopy(piece),target,piece.getPos()))
 
             captured_piece = self.get_piece((target_col,target_row))
-
-            result.add((deepcopy(captured_piece),None,(target_col,target_row)))
             self.board[target_row][target_col] = piece
             self.board[previous_row][previous_col] = None
 
@@ -364,8 +359,6 @@ class Board:
 
         if move_type == MoveType.CASTLE_KING_SIDE:  # When storing if using move number as key, then don't update the castling as a separate move maybe
             rook = self.get_piece((7,7)) if piece.is_white else self.get_piece((7,0))
-            result.add((deepcopy(self.get_piece((target_col-1,rook.row))),None,(target_col-1,rook.row)))
-            result.add((deepcopy(rook),(target_col-1,target_row),(rook.col,rook.row)))
             
             self.board[target_row][target_col-1] = rook
             self.board[rook.row][rook.col] = None
@@ -382,8 +375,6 @@ class Board:
 
         if move_type == MoveType.CASTLE_QUEEN_SIDE:
             rook = self.get_piece((0,7)) if piece.is_white else self.get_piece((0,0))
-            result.add((deepcopy(self.get_piece((target_col+1,rook.row))),None,(target_col+1,rook.row)))
-            result.add((deepcopy(rook),(target_col+1,target_row),(rook.col,rook.row)))
 
             self.board[target_row][target_col+1] = rook
             self.board[rook.row][rook.col] = None
@@ -398,11 +389,9 @@ class Board:
                 rook.y = rook.row * 100
 
         if move_type == MoveType.PROMOTION: # Eventually will need to ask what type of promotion
-            result.add((deepcopy(piece),position,(previous_col,previous_row)))
 
             captured_piece = self.get_piece((target_col,target_row))
 
-            result.add((deepcopy(captured_piece),None,(target_col,target_row)))
             self.board[target_row][target_col] = piece
             self.board[previous_row][previous_col] = None
 
@@ -418,7 +407,6 @@ class Board:
             piece.can_slide = True
 
         if move_type == MoveType.ENPASSANT:
-            result.add((deepcopy(self.get_piece((target_col,previous_row))),None,(target_col,previous_row)))
             self.board[previous_row][target_col] = None
 
         for p in self.get_pieces(None): # Enpassant is only allowed for one turn
@@ -428,10 +416,9 @@ class Board:
 
         piece.first_move = False
 
-        if not simulation:
-            self.LEGAL_MOVES = self.all_legal_moves()
-
         self.MOVE_NUMBER += 1
+        self.WHITE_TURN = not self.WHITE_TURN
+        self.update_game_status()
         return result
     
     def print_move(self, result: set()) -> None:
@@ -447,19 +434,28 @@ class Board:
     def undo_move(self, moved_pieces: set()) -> None:
         pass
 
+    def update_game_status(self) -> GameState:
         
-    def all_legal_moves(self) -> dict():
+        if not self.all_legal_moves(True):
+            self.GAME_STATE = GameState.BLACKWON
+
+        if not self.all_legal_moves(False):
+            self.GAME_STATE = GameState.WHITEWON
+
+    def all_legal_moves(self, color: bool) -> dict():
         '''
         Iterates through each piece on the board and calculates possible legal moves
         
         Returns:
-            A dict containing each piece and a list of its possible moves
+            A dict containing each piece on this team and a list of its possible moves
         '''
 
-        pieces = self.get_pieces(is_white=None)
+        pieces = self.get_pieces(is_white=color)
         legal_moves = {}
         for piece in pieces:
-            legal_moves[piece] = self.legal_moves(piece, check_for_checkmate=True)
+            piece_moves = self.legal_moves(piece, check_for_checkmate=True)
+            if piece_moves:
+                legal_moves[piece] = piece_moves
 
         return legal_moves
 
@@ -519,10 +515,10 @@ class Board:
                 if (not target_piece or self.are_enemies(target_piece, piece)) and self.king_safe_after_move(piece, (curr_col, curr_row, MoveType.DEFAULT), check_for_checkmate):
                     king_moves.add((curr_col, curr_row, MoveType.DEFAULT))
                     
-                    if dx == 1 and dy == 0 and piece.first_move and self.position_valid((curr_col+dx,curr_row)) and not self.get_piece((curr_col+dx,curr_row)) and self.can_rook_castle(piece,dx) and self.king_safe_after_move(piece, (curr_col, curr_row, MoveType.CASTLE_KING_SIDE), check_for_checkmate):
+                    if dx == 1 and dy == 0 and piece.first_move and self.position_valid((curr_col+dx,curr_row)) and not self.get_piece((curr_col+dx,curr_row)) and self.can_rook_castle(piece,dx) and self.king_safe_after_move(piece, (curr_col+dx, curr_row, MoveType.CASTLE_KING_SIDE), check_for_checkmate):
                         king_moves.add((curr_col+dx, curr_row, MoveType.CASTLE_KING_SIDE))
 
-                    if dx == -1 and dy == 0  and piece.first_move and self.position_valid((curr_col+dx,curr_row)) and not self.get_piece((curr_col+dx,curr_row)) and self.can_rook_castle(piece,dx) and self.king_safe_after_move(piece, (curr_col, curr_row, MoveType.CASTLE_QUEEN_SIDE), check_for_checkmate):
+                    if dx == -1 and dy == 0  and piece.first_move and self.position_valid((curr_col+dx,curr_row)) and not self.get_piece((curr_col+dx,curr_row)) and self.can_rook_castle(piece,dx) and self.king_safe_after_move(piece, (curr_col+dx, curr_row, MoveType.CASTLE_QUEEN_SIDE), check_for_checkmate):
                         king_moves.add((curr_col+dx, curr_row, MoveType.CASTLE_QUEEN_SIDE))
 
         return king_moves
@@ -547,15 +543,15 @@ class Board:
             enpassant_piece = self.get_piece((curr_col,piece.row))
 
             # Forward Move
-            if dx == 0 and target_piece == None and self.king_safe_after_move(piece, (curr_col,curr_row,MoveType.DEFAULT), check_for_checkmate) and check_for_checkmate: 
+            if dx == 0 and target_piece == None and self.king_safe_after_move(piece, (curr_col,curr_row,move_type), check_for_checkmate) and check_for_checkmate: 
                 pawn_moves.add((curr_col,curr_row,move_type))
 
                 # Double Forward Move
-                if piece.first_move and self.get_piece((curr_col,curr_row+dy)) == None and self.king_safe_after_move(piece, (curr_col,curr_row+dy,MoveType.DEFAULT), check_for_checkmate) and check_for_checkmate:
+                if piece.first_move and self.get_piece((curr_col,curr_row+dy)) == None and self.king_safe_after_move(piece, (curr_col,curr_row+dy,move_type), check_for_checkmate) and check_for_checkmate:
                     pawn_moves.add((curr_col,curr_row+dy,move_type))
 
             # Diagonal Capture
-            if dx != 0 and self.are_enemies(piece,target_piece) and self.king_safe_after_move(piece, (curr_col,curr_row,MoveType.DEFAULT), check_for_checkmate):
+            if dx != 0 and self.are_enemies(piece,target_piece) and self.king_safe_after_move(piece, (curr_col,curr_row,move_type), check_for_checkmate):
                 pawn_moves.add((curr_col,curr_row,move_type))
             
             # Enpassant Capture
@@ -572,13 +568,130 @@ class Board:
         if not check_for_checkmate:
             return True
         
+        king_safe_after_move = True
         spaces_in_check = set()
-        print(f"Simulating {piece} to {str(list(pos))}")
-        current = self.get_position_fenstring()
-        self.move_piece(piece,pos,simulation=True)
-        self.print_board()
-        self.setBoard(current,simulation=True)
-        return True
+        previous_col, previous_row = piece.getPos()
+        target_col, target_row, move_type = pos
+        target = (target_col, target_row)
+
+        captured_piece = None
+        previous_name = piece.name
+
+        if move_type in(MoveType.DEFAULT, MoveType.CASTLE_KING_SIDE, MoveType.CASTLE_QUEEN_SIDE):
+
+            captured_piece = self.get_piece((target_col,target_row))
+            self.board[target_row][target_col] = piece
+            self.board[previous_row][previous_col] = None
+
+            piece.col = target_col
+            piece.row = target_row
+
+
+        if move_type == MoveType.CASTLE_KING_SIDE:  # When storing if using move number as key, then don't update the castling as a separate move maybe
+            rook = self.get_piece((7,7)) if piece.is_white else self.get_piece((7,0))
+            
+            self.board[target_row][target_col-1] = rook
+            self.board[rook.row][rook.col] = None
+
+            rook = self.board[target_row][target_col-1]
+
+            rook.col = target_col-1
+            rook.row = target_row
+
+        if move_type == MoveType.CASTLE_QUEEN_SIDE:
+            rook = self.get_piece((0,7)) if piece.is_white else self.get_piece((0,0))
+
+            self.board[target_row][target_col+1] = rook
+            self.board[rook.row][rook.col] = None
+
+            rook = self.board[target_row][target_col+1]
+
+            rook.col = target_col+1
+            rook.row = target_row
+
+        if move_type == MoveType.PROMOTION: # Eventually will need to ask what type of promotion
+
+            captured_piece = self.get_piece((target_col,target_row))
+
+            self.board[target_row][target_col] = piece
+            self.board[previous_row][previous_col] = None
+
+            piece.col = target_col
+            piece.row = target_row
+
+            piece.name = Name.QUEEN
+            piece.can_slide = True
+
+        if move_type == MoveType.ENPASSANT:
+            captured_piece = self.board[previous_row][target_col]
+            self.board[target_row][target_col] = piece
+            self.board[previous_row][previous_col] = None
+            self.board[previous_row][target_col] = None
+
+            piece.col = target_col
+            piece.row = target_row
+
+        king = self.get_king(piece.is_white).getPos()
+
+        for enemy_piece in self.get_pieces(not(piece.is_white)):
+            legal_moves = self.legal_moves(enemy_piece, check_for_checkmate=False)
+
+            for move in legal_moves:
+                spaces_in_check.add(move[:2])
+
+            if king in spaces_in_check:
+                king_safe_after_move = False
+                # print(f"{piece.name} to {list(pos)} is not legal")
+                break
+
+        # UNDO MOVES MANUALLY
+        if move_type in(MoveType.DEFAULT, MoveType.CASTLE_KING_SIDE, MoveType.CASTLE_QUEEN_SIDE):
+            piece.col = previous_col
+            piece.row = previous_row
+
+            self.board[target_row][target_col] = captured_piece
+            self.board[previous_row][previous_col] = piece
+
+        if move_type == MoveType.CASTLE_KING_SIDE:  # When storing if using move number as key, then don't update the castling as a separate move maybe
+            
+            col, row = (7,7) if piece.is_white else (7,0)
+            rook = self.board[target_row][target_col-1]
+
+            self.board[target_row][target_col-1] = None
+            self.board[row][col] = rook
+
+            rook.col = col
+            rook.row = row
+
+        if move_type == MoveType.CASTLE_QUEEN_SIDE:
+            col, row = (0,7) if piece.is_white else (0,0)
+            rook = self.board[target_row][target_col+1]
+
+            self.board[target_row][target_col+1] = None
+            self.board[row][col] = rook
+
+            rook.col = col
+            rook.row = row
+
+        if move_type == MoveType.PROMOTION: # Eventually will need to ask what type of promotion
+            self.board[target_row][target_col] = captured_piece
+            self.board[previous_row][previous_col] = piece
+
+            piece.col = previous_col
+            piece.row = previous_row
+
+            piece.name = previous_name
+            piece.can_slide = False
+
+        if move_type == MoveType.ENPASSANT:
+            self.board[target_row][target_col] = None
+            self.board[previous_row][previous_col] = piece
+            self.board[previous_row][target_col] = captured_piece
+
+            piece.col = previous_col
+            piece.row = previous_row
+            
+        return king_safe_after_move
     
     def update_all_pinned_pieces(self) -> None:
         '''
