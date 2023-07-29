@@ -78,7 +78,9 @@ class Piece:
         return str(self.name)[5:6]
         
 class Move:
-
+    '''
+    A move contains a piece, previous position, target position, the type of move and the enemy piece that was captured
+    '''
     def __init__(self, piece: Piece, captured_piece: Piece, previous_position: tuple(), target_position: tuple(), move_type: MoveType) -> None:
         
         self.piece = piece

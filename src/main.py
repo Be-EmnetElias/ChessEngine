@@ -18,9 +18,28 @@ class Main:
         self.Board = Board(self.initial_position)
 
         # Create background
-        self.bg = pygame.image.load("src\\assets\\imgs\\bg_red.png")
-        self.bg = pygame.transform.scale(self.bg,(800,800))
+        bg_red = pygame.image.load("src\\assets\\imgs\\bg_red.png")
+        bg_red = pygame.transform.scale(bg_red,(800,800))
+
+        bg_blue = pygame.image.load("src\\assets\\imgs\\bg_blue.png")
+        bg_blue = pygame.transform.scale(bg_blue,(800,800))
+
+        bg_brown = pygame.image.load("src\\assets\\imgs\\bg_brown.png")
+        bg_brown = pygame.transform.scale(bg_brown,(800,800))
+
+        bg_green = pygame.image.load("src\\assets\\imgs\\bg_green.png")
+        bg_green = pygame.transform.scale(bg_green,(800,800))
         
+
+        self.bg_index = 0
+
+        self.bg = {
+            0: bg_red,
+            1: bg_blue,
+            2: bg_brown,
+            3: bg_green
+        }
+
         # Slice pieces.png into separate pieces
         pieces = pygame.image.load("src\\assets\\imgs\\pieces.png")
         piece_width = pieces.get_width() // 6
@@ -70,7 +89,7 @@ class Main:
         imgs = self.imgs
 
         while True:
-            self.screen.blit(self.bg,(0,0))
+            self.screen.blit(self.bg[self.bg_index],(0,0))
 
             if clicked_x_col and clicked_y_row:
                 pygame.draw.rect(self.screen, self.outline_color, pygame.Rect(clicked_x_col,clicked_y_row,100,100))
@@ -114,6 +133,11 @@ class Main:
                     if event.key == pygame.K_r:
                         self.Board.setBoard(self.initial_position)
                         print(f"Board reset to {self.initial_position}")
+
+                    # click 'b'
+                    if event.key == pygame.K_b:
+                        self.bg_index = (self.bg_index + 1) % len(self.bg)
+                        print(f"Changed board color")
 
                 # click
                 if event.type == pygame.MOUSEBUTTONDOWN and GAME_STATE == GameState.ACTIVE:
