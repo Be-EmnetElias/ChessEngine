@@ -15,13 +15,11 @@ Given a position from main.py, the following will need to happen:
     
 '''
 
-from helper import Name
-from helper import Piece
-from helper import MoveType
-from helper import GameState
-from helper import Move
-
-from copy import deepcopy
+from src.helper import Name
+from src.helper import Piece
+from src.helper import MoveType
+from src.helper import GameState
+from src.helper import Move
 
 
 class Board:
@@ -337,7 +335,7 @@ class Board:
                 
         return (valid,(position[0],position[1],move_type), extra_move_type)
     
-    def move_piece(self, piece: Piece, position: tuple(), simulation: bool) -> list():
+    def move_piece(self, piece: Piece, move: Move, simulation: bool) -> list():
         '''
         Moves this piece to this position <- a tuple containing location and move type. 
         Assumes that this move is legal. Updates the board, move history...
@@ -351,9 +349,10 @@ class Board:
         
         result = list()
 
-        previous_position = piece.getPos()
-        previous_col, previous_row = previous_position
-        target_col, target_row, move_type = position
+        previous_position = move.previous_position
+        previous_col, previous_row = move.previous_position
+        target_col, target_row = move.target_position
+        move_type = move.move_type
         target = (target_col, target_row)
 
         if move_type in (MoveType.DEFAULT, MoveType.CASTLE_KING_SIDE, MoveType.CASTLE_QUEEN_SIDE):
@@ -460,12 +459,6 @@ class Board:
             self.WHITE_TURN = not self.WHITE_TURN
             self.update_game_status()
 
-        
-        if move_type == MoveType.CASTLE_QUEEN_SIDE:
-            for m in result:
-                print(f"{m}",end=" ")
-            print("\n")
-
         return result
 
     def undo_move(self, move: Move) -> None:
@@ -478,8 +471,7 @@ class Board:
         previous_col, previous_row = previous_position
         target_col, target_row = target_position
 
-        if move_type == MoveType.CASTLE_QUEEN_SIDE or piece == Name.ROOK:
-            print(f"Undo {move_type} Move: {piece.name} to {previous_position} and restoring {captured_piece.name if captured_piece else 'none'} to {target_position}")
+        # print(f"Undo {move_type} Move: {piece.name} to {previous_position} and restoring {captured_piece.name if captured_piece else 'none'} to {target_position}")
 
         if move_type in (MoveType.DEFAULT, MoveType.CASTLE_KING_SIDE, MoveType.CASTLE_QUEEN_SIDE):
             self.board[previous_row][previous_col] = piece
@@ -554,9 +546,11 @@ class Board:
             while self.position_valid((curr_col,curr_row)):
                 target_piece = self.get_piece((curr_col,curr_row))
 
+                potential_move = Move(piece,target_piece,piece.getPos(),(curr_col,curr_row), MoveType.DEFAULT)
+
                 # Empty spaces or enemies are added as long as the king is safe after this move
-                if (not target_piece or self.are_enemies(target_piece, piece)) and self.king_safe_after_move(piece, (curr_col, curr_row, MoveType.DEFAULT), check_for_checkmate):
-                    legal_moves.add((curr_col, curr_row, MoveType.DEFAULT))
+                if (not target_piece or self.are_enemies(target_piece, piece)) and self.king_safe_after_move(potential_move, check_for_checkmate):
+                    legal_moves.add(potential_move)
 
                 # If a piece is in the way, or this piece cannot slide, break out and start exploring next displacement
                 if target_piece or not piece.can_slide:
@@ -578,21 +572,25 @@ class Board:
             dx, dy = displacement
             curr_col, curr_row = piece.col + dx, piece.row + dy
 
-            # TODO: Still need a way to check if in_between_target_piece is not in check
-
             if self.position_valid((curr_col,curr_row)):
                 
                 target_piece = self.get_piece((curr_col,curr_row))
                 target_pos = (curr_col,curr_row)
 
-                if (not target_piece or self.are_enemies(target_piece, piece)) and self.king_safe_after_move(piece, (curr_col, curr_row, MoveType.DEFAULT), check_for_checkmate):
-                    king_moves.add((curr_col, curr_row, MoveType.DEFAULT))
-                    
-                    if dx == 1 and dy == 0 and piece.first_move and self.position_valid((curr_col+dx,curr_row)) and not self.get_piece((curr_col+dx,curr_row)) and self.can_rook_castle(piece,dx) and self.king_safe_after_move(piece, (curr_col+dx, curr_row, MoveType.CASTLE_KING_SIDE), check_for_checkmate):
-                        king_moves.add((curr_col+dx, curr_row, MoveType.CASTLE_KING_SIDE))
+                potential_move = Move(piece,target_piece,piece.getPos(),(curr_col,curr_row), MoveType.DEFAULT)
 
-                    if dx == -1 and dy == 0  and piece.first_move and self.position_valid((curr_col+dx,curr_row)) and not self.get_piece((curr_col+dx,curr_row)) and self.can_rook_castle(piece,dx) and self.king_safe_after_move(piece, (curr_col+dx, curr_row, MoveType.CASTLE_QUEEN_SIDE), check_for_checkmate):
-                        king_moves.add((curr_col+dx, curr_row, MoveType.CASTLE_QUEEN_SIDE))
+                if (not target_piece or self.are_enemies(target_piece, piece)) and self.king_safe_after_move(potential_move, check_for_checkmate):
+                    king_moves.add(potential_move)
+                    
+                    captured_piece = self.get_piece((curr_col+dx,curr_row))
+                    potential_move = Move(piece,captured_piece,piece.getPos(),(curr_col+dx,curr_row), MoveType.CASTLE_KING_SIDE if dx == 1 else MoveType.CASTLE_QUEEN_SIDE)
+
+                    if dx == 1 and dy == 0 and piece.first_move and self.position_valid((curr_col+dx,curr_row)) and not self.get_piece((curr_col+dx,curr_row)) and self.can_rook_castle(piece,dx) and self.king_safe_after_move(potential_move, check_for_checkmate):
+                        king_moves.add(Move(piece,captured_piece,piece.getPos(),(curr_col, curr_row), MoveType.CASTLE_KING_SIDE))
+
+                    if dx == -1 and dy == 0  and piece.first_move and self.position_valid((curr_col+dx,curr_row)) and not self.get_piece((curr_col+dx,curr_row)) and self.can_rook_castle(piece,dx) and self.king_safe_after_move(potential_move, check_for_checkmate):
+                        king_moves.add(potential_move)
+
 
         return king_moves
     
@@ -615,55 +613,70 @@ class Board:
             target_pos = (curr_col, curr_row)
             enpassant_piece = self.get_piece((curr_col,piece.row))
 
+            potential_move = Move(piece,target_piece,piece.getPos(),(curr_col,curr_row), MoveType.DEFAULT)
+
             # Forward Move
-            if dx == 0 and target_piece == None and self.king_safe_after_move(piece, (curr_col,curr_row,move_type), check_for_checkmate) and check_for_checkmate: 
-                pawn_moves.add((curr_col,curr_row,move_type))
+            if dx == 0 and target_piece == None and self.king_safe_after_move(potential_move, check_for_checkmate) and check_for_checkmate: 
+                pawn_moves.add(potential_move)
 
                 # Double Forward Move
-                if piece.first_move and self.get_piece((curr_col,curr_row+dy)) == None and self.king_safe_after_move(piece, (curr_col,curr_row+dy,move_type), check_for_checkmate) and check_for_checkmate:
-                    pawn_moves.add((curr_col,curr_row+dy,move_type))
+                if piece.first_move and self.get_piece((curr_col,curr_row+dy)) == None and check_for_checkmate:
+                    captured_piece = self.get_piece((curr_col,curr_row+dy))
+                    potential_move = Move(piece,captured_piece,piece.getPos(),(curr_col,curr_row+dy), MoveType.DEFAULT)
+
+                    if self.king_safe_after_move(potential_move, check_for_checkmate):
+                        pawn_moves.add(potential_move)
+
 
             # Diagonal Capture
-            if dx != 0 and self.are_enemies(piece,target_piece) and self.king_safe_after_move(piece, (curr_col,curr_row,move_type), check_for_checkmate):
-                pawn_moves.add((curr_col,curr_row,move_type))
+            if dx != 0 and self.are_enemies(piece,target_piece) and self.king_safe_after_move(potential_move, check_for_checkmate):
+                pawn_moves.add(potential_move)
             
+            potential_move = Move(piece,target_piece,piece.getPos(),(curr_col,curr_row), MoveType.ENPASSANT)
+
             # Enpassant Capture
-            if dx != 0 and target_piece == None and self.are_enemies(enpassant_piece, piece) and enpassant_piece.enPassant and self.king_safe_after_move(piece, (curr_col,curr_row,MoveType.ENPASSANT), check_for_checkmate):
-                pawn_moves.add((curr_col,curr_row,MoveType.ENPASSANT))
+            if dx != 0 and target_piece == None and self.are_enemies(enpassant_piece, piece) and enpassant_piece.enPassant and self.king_safe_after_move(potential_move, check_for_checkmate):
+                pawn_moves.add(potential_move)
 
         return pawn_moves
 
-    def king_safe_after_move(self,piece: Piece, pos: tuple(), check_for_checkmate: bool) -> bool:
+    def king_safe_after_move(self,move: Move, check_for_checkmate: bool) -> bool:
+
         '''
         Only calculated when checking for checkmate. Simulates the move, then checks if this pieces king is on a square being
         attacked by the enemy team
         '''
+
         if not check_for_checkmate:
             return True
         
-        if self.get_piece(pos[:2]) == Name.KING:
+        if move.captured_piece and self.get_piece(move.captured_piece) == Name.KING:
             return False
         
+        piece = move.piece
         king_safe_after_move = True
         spaces_in_check = set()
-        moves = self.move_piece(piece,pos,simulation=True)
+
+        # Simulate this move
+        moves = self.move_piece(piece,move,simulation=True)
 
         # Check if king is in the attacking squares of enemy pieces
         king = self.get_king(piece.is_white).getPos()
         
-
+        # Find all squares that enemy is attacking
         for enemy_piece in self.get_pieces(not(piece.is_white)):
             legal_moves = self.legal_moves(enemy_piece, check_for_checkmate=False)
 
             for move in legal_moves:
-                spaces_in_check.add(move[:2])
+                spaces_in_check.add(move.target_position)
 
             if king in spaces_in_check:
                 king_safe_after_move = False
                 break
        
-        for move in moves:
-            self.undo_move(move)
+        # Undo this simulation
+        for m in moves:
+            self.undo_move(m)
 
         return king_safe_after_move
     

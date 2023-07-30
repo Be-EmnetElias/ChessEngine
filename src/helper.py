@@ -1,7 +1,5 @@
 from enum import Enum, auto
-
-
-        
+   
 class Name(Enum):
     PAWNW:int = 0
     PAWNB:int = 1

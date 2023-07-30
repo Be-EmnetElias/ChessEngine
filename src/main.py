@@ -1,10 +1,10 @@
 import pygame
 import sys
 
-from board import Board
+from src.board import Board
 from pygame import mixer
-from helper import MoveType
-from helper import GameState
+from src.helper import MoveType
+from src.helper import GameState
 
 class Main:
 
@@ -74,6 +74,8 @@ class Main:
             MoveType.CHECK: mixer.Sound("src\\assets\\sounds\\CHECK.wav")
         }
 
+        self.mainloop()
+
 
     def mainloop(self):
         # The piece that is being interacted with
@@ -92,7 +94,7 @@ class Main:
         drag_x, drag_y = None, None
 
 
-        while self.Board.GAME_STATE == GameState.ACTIVE:
+        while True: # self.Board.GAME_STATE == GameState.ACTIVE:
             self.screen.blit(self.bg[self.bg_index],(0,0))
 
             if drag_x and drag_y and self.Board.position_valid((drag_x//100,drag_y//100)):
@@ -236,5 +238,3 @@ class Main:
     def play_sound(self, move_type: MoveType) -> None:
         self.sounds[move_type].play()
 
-main = Main()
-main.mainloop()
