@@ -36,6 +36,7 @@ class MoveType(Enum):
     CASTLE_QUEEN_SIDE:int = 3
     PROMOTION:int = 4
     ENPASSANT:int = 5
+    CHECK: int = 6
 
 class GameState(Enum):
     ACTIVE:int=0
@@ -65,8 +66,12 @@ class Piece:
     
     def get_letter(self) -> str:
         if self.is_white:
+            if self.name == Name.KNIGHT:
+                return "N"
             return str(self.name)[5:6]
         else:
+            if self.name == Name.KNIGHT:
+                return "n"
             return str(self.name)[5:6].lower()
     
     def __str__(self) -> str:

@@ -11,10 +11,10 @@ class Main:
     def __init__(self):
         pygame.init()
         
-        self.screen = pygame.display.set_mode((800,800))
+        self.screen = pygame.display.set_mode((1000,800))
         pygame.display.set_caption("Chess")
 
-        self.initial_position = "default"
+        self.initial_position = "test_castle"
         self.Board = Board(self.initial_position)
 
         # Create background
@@ -70,13 +70,13 @@ class Main:
             MoveType.CAPTURE: mixer.Sound("src\\assets\\sounds\\CAPTURE.wav"),
             MoveType.CASTLE_KING_SIDE: mixer.Sound("src\\assets\\sounds\\CASTLE.wav"),
             MoveType.CASTLE_QUEEN_SIDE: mixer.Sound("src\\assets\\sounds\\CASTLE.wav"),
-            MoveType.PROMOTION: mixer.Sound("src\\assets\\sounds\\PROMOTION.wav")
+            MoveType.PROMOTION: mixer.Sound("src\\assets\\sounds\\PROMOTION.wav"),
+            MoveType.CHECK: mixer.Sound("src\\assets\\sounds\\CHECK.wav")
         }
 
 
     def mainloop(self):
-        # The piece that is being interacted with. Note that
-        # this main.py will ONLY interact with a pieces pixel location
+        # The piece that is being interacted with
         clicked_piece = None
         clicked_x_col, clicked_y_row = None, None
         previous_x_col, previous_y_row = None, None
@@ -88,11 +88,16 @@ class Main:
         board = self.Board.board
         imgs = self.imgs
 
-        while True:
+        current_move = None
+        drag_x, drag_y = None, None
+
+
+        while self.Board.GAME_STATE == GameState.ACTIVE:
             self.screen.blit(self.bg[self.bg_index],(0,0))
 
-            if clicked_x_col and clicked_y_row:
-                pygame.draw.rect(self.screen, self.outline_color, pygame.Rect(clicked_x_col,clicked_y_row,100,100))
+            if drag_x and drag_y and self.Board.position_valid((drag_x//100,drag_y//100)):
+                # TODO: drag_x and drag_y don't work on the top row or the bottom left 
+                pygame.draw.rect(self.screen, self.outline_color, pygame.Rect(drag_x ,drag_y,100,100))
 
             if previous_x_col and previous_y_row:
                 pygame.draw.rect(self.screen, self.highlight_color, pygame.Rect(previous_x_col,previous_y_row,100,100))
@@ -107,9 +112,7 @@ class Main:
 
             
             for event in pygame.event.get():
-                
-                GAME_STATE = self.Board.GAME_STATE
-
+            
                 clicked_x_col, clicked_y_row = pygame.mouse.get_pos()
                 clicked_x_col = clicked_x_col//100 * 100
                 clicked_y_row = clicked_y_row//100 * 100
@@ -117,30 +120,49 @@ class Main:
                 # keyboard press
                 if event.type == pygame.KEYDOWN:
 
-                    # click 'm'
+                    # click 'm' to toggle audio
                     if event.key == pygame.K_m:
                         play_sound = not play_sound
                         sound_status = "unmuted" if play_sound else "muted"
                         print(f"AUDIO {sound_status}")
 
-                    # click 'h'
+                    # click 'h' to toggle hints
                     if event.key == pygame.K_h:
                         show_hint = not show_hint
                         hint_status = "showing hints" if show_hint else "hiding hints"
                         print(f"{hint_status}")
 
-                    # click 'r'
+                    # click 'r' to reset board
                     if event.key == pygame.K_r:
                         self.Board.setBoard(self.initial_position)
                         print(f"Board reset to {self.initial_position}")
 
-                    # click 'b'
-                    if event.key == pygame.K_b:
+                    # click 'c' to change color
+                    if event.key == pygame.K_c:
                         self.bg_index = (self.bg_index + 1) % len(self.bg)
                         print(f"Changed board color")
 
+                    # click 'a' to go back 1 move
+                    if event.key == pygame.K_a:
+                        print("Undoing: ",end="")
+                        for m in current_move:
+                            print(m, end="")
+                        print("\n")
+
+                    # click 'd' to go forward 1 move
+                    if event.key == pygame.K_d:
+                        print(f"Going forward 1 move")
+
+                    # click 'f' to get fen string
+                    if event.key == pygame.K_f:
+                        print(f"FENSTRING: {self.Board.get_position_fenstring()}")
+
+                    # click 'p' to print board
+                    if event.key == pygame.K_p:
+                        print(self.Board.print_board())
+
                 # click
-                if event.type == pygame.MOUSEBUTTONDOWN and GAME_STATE == GameState.ACTIVE:
+                if event.type == pygame.MOUSEBUTTONDOWN:
 
                     clicked_row = event.pos[1] // 100
                     clicked_col = event.pos[0] // 100
@@ -154,27 +176,35 @@ class Main:
                     #print(f"{clicked_piece} was clicked at {clicked_col},{clicked_row}")
                 
                 # mouse motion
-                elif event.type == pygame.MOUSEMOTION and GAME_STATE == GameState.ACTIVE:
+                elif event.type == pygame.MOUSEMOTION:
                     
+                    drag_x = event.pos[0] // 100 * 100
+                    drag_y = event.pos[1] // 100 * 100
+
                     if clicked_piece:
                         clicked_piece.x = event.pos[0] - 40
                         clicked_piece.y = event.pos[1] - 50
 
+                    
+
 
                 # release click
-                elif clicked_piece and event.type == pygame.MOUSEBUTTONUP and GAME_STATE == GameState.ACTIVE:
+                elif clicked_piece and event.type == pygame.MOUSEBUTTONUP:
                     x,y = event.pos
                     col, row = x//100, y//100
 
                     # user_valid_move calls move_piece which also updates pixel location
-                    valid, move_type = self.Board.user_valid_move(clicked_piece,(col,row))
+                    valid, move, extra_move_type = self.Board.user_valid_move(clicked_piece,(col,row))
+
                     if valid: # user_valid move will move the piece automatically (should change)
-                        if play_sound:
-                            self.play_sound(move_type)
-                        move_hints = None
-                        clicked_piece.x = col * 100
-                        clicked_piece.y = row * 100
                         
+                        current_move = self.Board.move_piece(clicked_piece,move, simulation=False)
+                        
+                        if play_sound:
+                            self.play_sound(extra_move_type)
+
+                        move_hints = None
+
                     else: # Reset Piece
                         clicked_piece.x = clicked_piece.col * 100
                         clicked_piece.y = clicked_piece.row * 100
