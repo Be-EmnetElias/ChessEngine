@@ -90,7 +90,7 @@ class Board:
             FENSTRING = "rnbqkbnr/ppPppppp/8/8/8/8/P1PPPPPP/RNBQKBNR w KQkq - random"
 
         if FENSTRING == "random_test":
-            FENSTRING = "rnb1kbnr/ppPp1ppp/4p3/8/8/B1P2q2/P2PPP1P/RN1QK2R w KQkq - random"
+            FENSTRING = "r3k2r/ppqbpp1p/n1pp2pb/8/8/N1PP1NP1/PPQ1PPBP/2KR3R b kq - random"
 
         print(FENSTRING)
         board_information = FENSTRING.split(" ")
@@ -315,25 +315,26 @@ class Board:
         valid = False
         move_type = MoveType.DEFAULT
         extra_move_type = MoveType.DEFAULT
-
+        potential_move = None
         # Calculate all legal moves, this tuple will contain the move type which is not in position parameter
         legal_moves_for_piece = self.legal_moves(piece, check_for_checkmate=True)
 
         # Iterate through the legal moves and look for this position
         for move in legal_moves_for_piece:
-            col, row, type_of_move = move
-            if position == (col,row):
+            type_of_move = move.move_type
+            if position == move.target_position:
                 # Pass the legal move containing the move type
                 valid = True # TODO: piece.is_white == self.WHITE_TURN
+                potential_move = move
                 move_type = type_of_move
                 extra_move_type = move_type
-                if self.are_enemies(piece,self.get_piece((col,row))) and move_type == MoveType.DEFAULT:
+                if self.are_enemies(piece,move.captured_piece) and move_type == MoveType.DEFAULT:
                     extra_move_type = MoveType.CAPTURE
                 # if TODO: CHECK IF KING IS IN CHECK:
                 #     extra_move_type = MoveType.CHECK
                     
                 
-        return (valid,(position[0],position[1],move_type), extra_move_type)
+        return (valid,potential_move, extra_move_type)
     
     def move_piece(self, piece: Piece, move: Move, simulation: bool) -> list():
         '''
@@ -543,11 +544,14 @@ class Board:
             dx, dy = displacement
             curr_col, curr_row = piece.col + dx, piece.row + dy
 
+            if piece.is_white:
+                print(f"Potential Move {piece.name} to {potential_move.target_position}")
+
             while self.position_valid((curr_col,curr_row)):
                 target_piece = self.get_piece((curr_col,curr_row))
 
                 potential_move = Move(piece,target_piece,piece.getPos(),(curr_col,curr_row), MoveType.DEFAULT)
-
+                
                 # Empty spaces or enemies are added as long as the king is safe after this move
                 if (not target_piece or self.are_enemies(target_piece, piece)) and self.king_safe_after_move(potential_move, check_for_checkmate):
                     legal_moves.add(potential_move)
@@ -650,15 +654,18 @@ class Board:
         if not check_for_checkmate:
             return True
         
-        if move.captured_piece and self.get_piece(move.captured_piece) == Name.KING:
-            return False
+        # if move.captured_piece and self.get_piece(move.captured_piece.getPos()) == Name.KING:
+        #     return False
         
         piece = move.piece
-        king_safe_after_move = True
+        king_safe_after_move = False
         spaces_in_check = set()
 
         # Simulate this move
         moves = self.move_piece(piece,move,simulation=True)
+
+        #print(f"Simulating {piece.name} to {move.target_position}")
+        #self.print_board()
 
         # Check if king is in the attacking squares of enemy pieces
         king = self.get_king(piece.is_white).getPos()
@@ -673,7 +680,10 @@ class Board:
             if king in spaces_in_check:
                 king_safe_after_move = False
                 break
+            else:
+                king_safe_after_move = True
        
+        #print(f"{king_safe_after_move} \n==========\n")
         # Undo this simulation
         for m in moves:
             self.undo_move(m)

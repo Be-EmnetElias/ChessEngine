@@ -14,7 +14,7 @@ class Main:
         self.screen = pygame.display.set_mode((1000,800))
         pygame.display.set_caption("Chess")
 
-        self.initial_position = "test_castle"
+        self.initial_position = "random_test"
         self.Board = Board(self.initial_position)
 
         # Create background
@@ -105,8 +105,9 @@ class Main:
                 pygame.draw.rect(self.screen, self.highlight_color, pygame.Rect(previous_x_col,previous_y_row,100,100))
 
             if move_hints and show_hint and clicked_piece:
-                for pos in move_hints:
-                    col, row, move_type = pos
+                for move in move_hints:
+                    col, row = move.target_position
+                    move_type = move.move_type
                     if self.Board.are_enemies(board[row][col],clicked_piece) or move_type == MoveType.ENPASSANT:
                         pygame.draw.rect(self.screen,self.capture_color,pygame.Rect(col*100,row*100,100,100))
                     else:
