@@ -14,7 +14,7 @@ class Main:
         self.screen = pygame.display.set_mode((1000,800))
         pygame.display.set_caption("Chess")
 
-        self.initial_position = "random_test"
+        self.initial_position = "default"
         self.Board = Board(self.initial_position)
 
         # Create background
@@ -171,13 +171,14 @@ class Main:
                 # click
                 if event.type == pygame.MOUSEBUTTONDOWN:
 
-                    clicked_row = event.pos[1] // 100
-                    clicked_col = event.pos[0] // 100
+                    if(self.Board.position_valid((event.pos[0]//100,event.pos[1]//100))):
+                        clicked_row = event.pos[1] // 100
+                        clicked_col = event.pos[0] // 100
 
-                    previous_x_col = clicked_col * 100
-                    previous_y_row = clicked_row * 100
+                        previous_x_col = clicked_col * 100
+                        previous_y_row = clicked_row * 100
 
-                    clicked_piece = board[clicked_row][clicked_col]
+                        clicked_piece = board[clicked_row][clicked_col]
                     if clicked_piece:
                         move_hints = self.Board.legal_moves(clicked_piece,check_for_checkmate=True)
                     #print(f"{clicked_piece} was clicked at {clicked_col},{clicked_row}")

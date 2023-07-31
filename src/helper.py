@@ -10,7 +10,7 @@ class Name(Enum):
     KING:int= 6
 
 class MoveType(Enum):
-    
+
     def __str__(self) -> str:
         match self:
             case MoveType.DEFAULT:
@@ -57,7 +57,6 @@ class Piece:
         self.first_move = True
         self.enPassant = False
         self.can_slide = False if (name == Name.KING or name == Name.PAWNW or name == Name.PAWNB or name == Name.KNIGHT) else True
-        self.pinned_directions = set()
 
     def getPos(self) -> tuple():
         return (self.col,self.row)
@@ -91,6 +90,7 @@ class Move:
         self.previous_position = previous_position
         self.target_position = target_position
         self.move_type = move_type
-
+        self.rook_to_castle = None
+        
     def __str__(self) -> str:
         return f"{self.move_type}: {self.piece.name} to {self.target_position} { f'capturing {self.captured_piece.name}' if self.captured_piece else ''}"

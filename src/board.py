@@ -349,7 +349,7 @@ class Board:
                 
         return (valid,potential_move, extra_move_type)
     
-    def move_piece(self, piece: Piece, move: Move, simulation: bool) -> list():
+    def move_piece(self, piece: Piece, move: Move, simulation: bool) -> Move:
         '''
         Moves this piece to this position <- a tuple containing location and move type. 
         Assumes that this move is legal. Updates the board, move history...
@@ -361,7 +361,7 @@ class Board:
         Note: This function may end up too large and should be broken into smaller functions
         '''
         
-        result = list()
+        result = None
 
         previous_position = move.previous_position
         previous_col, previous_row = move.previous_position
@@ -382,7 +382,7 @@ class Board:
                 piece.x = target_col * 100
                 piece.y = target_row * 100
 
-            result.append(Move(piece,captured_piece,previous_position, target, move_type))
+            result = Move(piece,captured_piece,previous_position, target, move_type)
 
         if move_type == MoveType.CASTLE_KING_SIDE:  # When storing if using move number as key, then don't update the castling as a separate move maybe
             rook = self.get_piece((7,7)) if piece.is_white else self.get_piece((7,0))
@@ -401,7 +401,7 @@ class Board:
                 rook.x = rook.col * 100
                 rook.y = rook.row * 100
 
-            result.append(Move(rook,captured_piece,previous_position,(target_col-1,target_row),MoveType.DEFAULT))
+            result.rook_to_castle = (rook,captured_piece,previous_position,(target_col-1,target_row))
 
         if move_type == MoveType.CASTLE_QUEEN_SIDE:
             rook = self.get_piece((0,7)) if piece.is_white else self.get_piece((0,0))
@@ -420,7 +420,7 @@ class Board:
                 rook.x = rook.col * 100
                 rook.y = rook.row * 100
 
-            result.append(Move(rook,captured_piece,previous_position,(target_col+1,target_row),MoveType.DEFAULT))
+            result.rook_to_castle = (rook,captured_piece,previous_position,(target_col+1,target_row))
             
 
         if move_type == MoveType.PROMOTION: # Eventually will need to ask what type of promotion
@@ -441,7 +441,7 @@ class Board:
 
             piece.can_slide = True
 
-            result.append(Move(piece,captured_piece,previous_position,(target_col,target_row),MoveType.PROMOTION))
+            result = Move(piece,captured_piece,previous_position,(target_col,target_row),MoveType.PROMOTION)
 
         if move_type == MoveType.ENPASSANT:
             captured_piece = self.board[previous_row][target_col]
@@ -456,23 +456,22 @@ class Board:
                 piece.x = target_col * 100
                 piece.y = target_row * 100
 
-            result.append(Move(piece,captured_piece,previous_position,target,move_type))
+            result = Move(piece,captured_piece,previous_position,target,move_type)
 
 
-
-        if not simulation: # Just for testing
-            for p in self.get_pieces(None): # Enpassant is only allowed for one turn
-                p.enPassant = False
-            
-            piece.enPassant = (piece.name == Name.PAWNW or piece.name == Name.PAWNB) and piece.first_move and abs(target_row-previous_row) == 2
-
-            piece.first_move = False
-            
+        if not simulation: 
             self.MOVE_HISTORY.update({self.MOVE_NUMBER:result})
             self.MOVE_NUMBER += 1
             self.WHITE_TURN = not self.WHITE_TURN
             self.update_game_status()
             self.update_current_legal_moves()
+
+        for p in self.get_pieces(None): # Enpassant is only allowed for one turn
+            p.enPassant = False
+            
+        piece.enPassant = (piece.name == Name.PAWNW or piece.name == Name.PAWNB) and piece.first_move and abs(target_row-previous_row) == 2
+
+        piece.first_move = False
 
         return result
 
@@ -482,7 +481,7 @@ class Board:
         previous_position = move.previous_position
         target_position = move.target_position
         move_type = move.move_type
-
+        piece.enPassant = False
         previous_col, previous_row = previous_position
         target_col, target_row = target_position
 
@@ -495,6 +494,26 @@ class Board:
             piece.col = previous_col
             piece.row = previous_row
 
+            if piece.name == Name.PAWNW:
+                piece.first_move = previous_row == 6
+            
+            if piece.name == Name.PAWNB:
+                piece.first_move = previous_row == 1
+
+            if move_type in (MoveType.CASTLE_KING_SIDE, MoveType.CASTLE_QUEEN_SIDE):
+                rook,captured_piece,previous_position,target_position = move.rook_to_castle
+                previous_col, previous_row = previous_position
+                target_col, target_row = target_position
+
+                piece.first_move = True
+                rook.first_move = True
+
+                self.board[previous_row][previous_col] = rook
+                self.board[target_row][target_col] = captured_piece
+
+                rook.col = previous_col
+                rook.row = previous_row
+
         if move_type == MoveType.ENPASSANT:
             self.board[previous_row][previous_col] = piece
             self.board[target_row][target_col] = None
@@ -502,6 +521,7 @@ class Board:
 
             piece.col = previous_col
             piece.row = previous_row
+            captured_piece.enPassant = True
 
         if move_type == MoveType.PROMOTION:
             self.board[target_row][target_col] = captured_piece
@@ -518,43 +538,26 @@ class Board:
         
         if not self.CURRENT_WHITE_LEGAL_MOVES:
             self.GAME_STATE = GameState.BLACKWON
+            print("BLACK WON")
 
         if not self.CURRENT_BLACK_LEGAL_MOVES:
             self.GAME_STATE = GameState.WHITEWON
-
-    # def all_legal_moves(self, color: bool) -> dict():
-    #     '''
-    #     Iterates through each piece on the board and calculates possible legal moves
-        
-    #     Returns:
-    #         A dict containing each piece on this team and a list of its possible moves
-    #     '''
-
-    #     pieces = self.get_pieces(is_white=color)
-    #     legal_moves = {}
-    #     for piece in pieces:
-    #         piece_moves = self.legal_moves(piece, check_for_checkmate=True)
-    #         if piece_moves:
-    #             legal_moves[piece] = piece_moves
-
-    #     return legal_moves
+            print("WHITE WON")
 
     def legal_moves(self, piece: Piece, check_for_checkmate: bool) -> set():
-        self.update_all_pinned_pieces()
+
+        pinned_pieces = self.update_all_pinned_pieces()
 
         if piece.name == Name.PAWNW or piece.name == Name.PAWNB:
-            return self.legal_moves_pawn(piece, check_for_checkmate)
+            return self.legal_moves_pawn(piece, check_for_checkmate,pinned_pieces)
         if piece.name == Name.KING:
-            return self.legal_moves_king(piece,check_for_checkmate)
+            return self.legal_moves_king(piece,check_for_checkmate,pinned_pieces)
         
         legal_moves = set()
         displacements = self.PSEUDO_LEGAL_MOVEMENT[piece.name]
 
         for displacement in displacements:
-            if piece.name == Name.KNIGHT and piece.is_white and check_for_checkmate:
-                print(f"Direction: {displacement}", end=" ")
-            if len(piece.pinned_directions) > 0 and (displacement not in piece.pinned_directions):
-                print(f"PINNED")
+            if piece in pinned_pieces.keys() and displacement not in pinned_pieces[piece]:
                 continue
 
             dx, dy = displacement
@@ -563,9 +566,6 @@ class Board:
             
 
             while self.position_valid((curr_col,curr_row)):
-                if piece.name == Name.KNIGHT and piece.is_white and check_for_checkmate:
-                    print(f"Potential Move {piece.name} to {curr_col} {curr_row}")
-
                 target_piece = self.get_piece((curr_col,curr_row))
 
                 potential_move = Move(piece,target_piece,piece.getPos(),(curr_col,curr_row), MoveType.DEFAULT)
@@ -583,12 +583,12 @@ class Board:
 
         return legal_moves
 
-    def legal_moves_king(self, piece: Piece, check_for_checkmate: bool) -> set():
+    def legal_moves_king(self, piece: Piece, check_for_checkmate: bool, pinned_pieces: dict()) -> set():
         king_moves = set()
         displacements = self.PSEUDO_LEGAL_MOVEMENT[Name.KING]
 
         for displacement in displacements:
-            if len(piece.pinned_directions) > 0 and displacement not in piece.pinned_directions:
+            if piece in pinned_pieces.keys() and displacement not in pinned_pieces[piece]:
                 continue
 
             dx, dy = displacement
@@ -616,12 +616,12 @@ class Board:
 
         return king_moves
     
-    def legal_moves_pawn(self, piece: Piece, check_for_checkmate: bool) -> set():
+    def legal_moves_pawn(self, piece: Piece, check_for_checkmate: bool, pinned_pieces: dict()) -> set():
         pawn_moves = set()
         displacements = self.PSEUDO_LEGAL_MOVEMENT[piece.name]
 
         for displacement in displacements:
-            if len(piece.pinned_directions) > 0 and displacement not in piece.pinned_directions:
+            if piece in pinned_pieces.keys() and displacement not in pinned_pieces[piece]:
                 continue
 
             dx, dy = displacement
@@ -672,15 +672,15 @@ class Board:
         if not check_for_checkmate:
             return True
         
-        # if move.captured_piece and self.get_piece(move.captured_piece.getPos()) == Name.KING:
-        #     return False
+        if move.captured_piece and self.get_piece(move.captured_piece.getPos()) == Name.KING:
+            return False
         
         piece = move.piece
         king_safe_after_move = False
         spaces_in_check = set()
 
         # Simulate this move
-        moves = self.move_piece(piece,move,simulation=True)
+        simulated_move = self.move_piece(piece,move,simulation=True)
 
         #print(f"Simulating {piece.name} to {move.target_position}")
         #self.print_board()
@@ -701,30 +701,27 @@ class Board:
             else:
                 king_safe_after_move = True
        
-        #print(f"{king_safe_after_move} \n==========\n")
-        # Undo this simulation
-        for m in moves:
-            self.undo_move(m)
+        self.undo_move(simulated_move)
 
         return king_safe_after_move
     
-    def update_all_pinned_pieces(self) -> None:
+    def update_all_pinned_pieces(self) -> dict():
         '''
         Updates every pinned piece and which direction they are pinned in. 
         '''
-        # Clear old data
-        for piece in self.get_pieces(is_white=None):
-            piece.pinned_directions.clear()
-
+        pinned_pieces = {}
         kings = (self.get_king(True),self.get_king(False))
         displacements = self.PSEUDO_LEGAL_MOVEMENT[Name.QUEEN]
 
         # Starting from each king, expand outwards in 8 directions
         for king in kings:
+
             if not king:
                 break
+
             for displacement in displacements:
                 dx, dy = displacement
+                
                 curr_col, curr_row = king.col + dx, king.row + dy
                 piece_maybe_pinned = None
 
@@ -738,8 +735,7 @@ class Board:
 
                     if self.are_enemies(king, target_piece):
                         if piece_maybe_pinned and target_piece.can_slide and displacement in self.PSEUDO_LEGAL_MOVEMENT[target_piece.name]:
-                            piece_maybe_pinned.pinned_directions.add((displacement))
-                            piece_maybe_pinned.pinned_directions.add((dx * -1, dy * -1))
+                            pinned_pieces.update({piece_maybe_pinned:((displacement),(dx*-1,dy*-1))})
                         break
                     else:
                         if piece_maybe_pinned:
@@ -749,7 +745,8 @@ class Board:
 
                     curr_col += dx
                     curr_row += dy
-                    
+
+        return pinned_pieces          
 
     '''
     HELPER METHODS
