@@ -18,16 +18,16 @@ class Main:
         self.Board = Board(self.initial_position)
 
         # Create background
-        bg_red = pygame.image.load("src\\assets\\imgs\\bg_red.png")
+        bg_red = pygame.image.load("src//assets//imgs//bg_red.png")
         bg_red = pygame.transform.scale(bg_red,(800,800))
 
-        bg_blue = pygame.image.load("src\\assets\\imgs\\bg_blue.png")
+        bg_blue = pygame.image.load("src//assets//imgs//bg_blue.png")
         bg_blue = pygame.transform.scale(bg_blue,(800,800))
 
-        bg_brown = pygame.image.load("src\\assets\\imgs\\bg_brown.png")
+        bg_brown = pygame.image.load("src//assets//imgs//bg_brown.png")
         bg_brown = pygame.transform.scale(bg_brown,(800,800))
 
-        bg_green = pygame.image.load("src\\assets\\imgs\\bg_green.png")
+        bg_green = pygame.image.load("src//assets//imgs//bg_green.png")
         bg_green = pygame.transform.scale(bg_green,(800,800))
         
 
@@ -41,7 +41,7 @@ class Main:
         }
 
         # Slice pieces.png into separate pieces
-        pieces = pygame.image.load("src\\assets\\imgs\\pieces.png")
+        pieces = pygame.image.load("src//assets//imgs//pieces.png")
         piece_width = pieces.get_width() // 6
         piece_height = pieces.get_height() // 2
 
@@ -65,13 +65,13 @@ class Main:
         
         # Set up dictionary of move types to sounds
         self.sounds = {
-            MoveType.DEFAULT: mixer.Sound("src\\assets\\sounds\\DEFAULT.wav"),
-            MoveType.ENPASSANT: mixer.Sound("src\\assets\\sounds\\CAPTURE.wav"),
-            MoveType.CAPTURE: mixer.Sound("src\\assets\\sounds\\CAPTURE.wav"),
-            MoveType.CASTLE_KING_SIDE: mixer.Sound("src\\assets\\sounds\\CASTLE.wav"),
-            MoveType.CASTLE_QUEEN_SIDE: mixer.Sound("src\\assets\\sounds\\CASTLE.wav"),
-            MoveType.PROMOTION: mixer.Sound("src\\assets\\sounds\\PROMOTION.wav"),
-            MoveType.CHECK: mixer.Sound("src\\assets\\sounds\\CHECK.wav")
+            MoveType.DEFAULT: mixer.Sound("src//assets//sounds//DEFAULT.wav"),
+            MoveType.ENPASSANT: mixer.Sound("src//assets//sounds//CAPTURE.wav"),
+            MoveType.CAPTURE: mixer.Sound("src//assets//sounds//CAPTURE.wav"),
+            MoveType.CASTLE_KING_SIDE: mixer.Sound("src//assets//sounds//CASTLE.wav"),
+            MoveType.CASTLE_QUEEN_SIDE: mixer.Sound("src//assets//sounds//CASTLE.wav"),
+            MoveType.PROMOTION: mixer.Sound("src//assets//sounds//PROMOTION.wav"),
+            MoveType.CHECK: mixer.Sound("src//assets//sounds//CHECK.wav")
         }
 
         self.mainloop()
@@ -84,21 +84,25 @@ class Main:
         previous_x_col, previous_y_row = None, None
         move_hints = None
         show_hint = True
-
         play_sound = True
 
         board = self.Board.board
         imgs = self.imgs
 
-        current_move = None
-        drag_x, drag_y = None, None
+        font = pygame.font.Font('freesansbold.ttf', 10)
+        white = (255, 255, 255)
 
+        current_move = None
+        drag_x, drag_y = 0, 0
+        text = font.render(f"{drag_x} , {drag_y}", True, white)
+        
 
         while True: # self.Board.GAME_STATE == GameState.ACTIVE:
+            self.screen.fill((0,0,0))
             self.screen.blit(self.bg[self.bg_index],(0,0))
+            self.screen.blit(text,(900,0))
 
             if drag_x and drag_y and self.Board.position_valid((drag_x//100,drag_y//100)):
-                # TODO: drag_x and drag_y don't work on the top row or the bottom left 
                 pygame.draw.rect(self.screen, self.outline_color, pygame.Rect(drag_x ,drag_y,100,100))
 
             if previous_x_col and previous_y_row:
@@ -181,9 +185,11 @@ class Main:
                 # mouse motion
                 elif event.type == pygame.MOUSEMOTION:
                     
-                    drag_x = event.pos[0] // 100 * 100
-                    drag_y = event.pos[1] // 100 * 100
+                    drag_x = int(event.pos[0] //100 * 100)
+                    drag_y = int(event.pos[1] // 100 * 100)
 
+                    text = font.render(f"{drag_x} , {drag_y}", True, white)
+                    
                     if clicked_piece:
                         clicked_piece.x = event.pos[0] - 40
                         clicked_piece.y = event.pos[1] - 50

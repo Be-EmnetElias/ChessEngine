@@ -50,7 +50,8 @@ class Board:
         self.WHITE_TURN = True
 
         self.MOVE_HISTORY = {} # Key: Move Number Value: List of moves from that turn
-
+        self.CURRENT_WHITE_LEGAL_MOVES = {} #dict key: piece value: list of moves
+        self.CURRENT_BLACK_LEGAL_MOVES = {} 
         
         print(f'Setting board to {initial_position} position')
         self.setBoard(initial_position)
@@ -90,7 +91,7 @@ class Board:
             FENSTRING = "rnbqkbnr/ppPppppp/8/8/8/8/P1PPPPPP/RNBQKBNR w KQkq - random"
 
         if FENSTRING == "random_test":
-            FENSTRING = "r3k2r/ppqbpp1p/n1pp2pb/8/8/N1PP1NP1/PPQ1PPBP/2KR3R b kq - random"
+            FENSTRING = "r3k2r/ppqbpp1p/n1pp2pb/8/8/2PP1NP1/PPQ1PPBP/2KR3R b kq - random"
 
         print(FENSTRING)
         board_information = FENSTRING.split(" ")
@@ -224,6 +225,18 @@ class Board:
             if enpassant_piece:
                 enpassant_piece.enPassant = True
 
+        self.update_current_legal_moves()
+            
+
+    def update_current_legal_moves(self) -> None:
+        for piece in self.get_pieces(True):
+            moves = self.legal_moves(piece, check_for_checkmate=True)
+            self.CURRENT_WHITE_LEGAL_MOVES.update({piece: moves})
+
+        for piece in self.get_pieces(False):
+            moves = self.legal_moves(piece, check_for_checkmate=True)
+            self.CURRENT_BLACK_LEGAL_MOVES.update({piece: moves})
+
     def get_position_fenstring(self) -> str:
         result = ""
         enpassant_piece = list()
@@ -317,7 +330,7 @@ class Board:
         extra_move_type = MoveType.DEFAULT
         potential_move = None
         # Calculate all legal moves, this tuple will contain the move type which is not in position parameter
-        legal_moves_for_piece = self.legal_moves(piece, check_for_checkmate=True)
+        legal_moves_for_piece = self.CURRENT_WHITE_LEGAL_MOVES[piece] if piece.is_white else self.CURRENT_BLACK_LEGAL_MOVES[piece]
 
         # Iterate through the legal moves and look for this position
         for move in legal_moves_for_piece:
@@ -459,6 +472,7 @@ class Board:
             self.MOVE_NUMBER += 1
             self.WHITE_TURN = not self.WHITE_TURN
             self.update_game_status()
+            self.update_current_legal_moves()
 
         return result
 
@@ -502,28 +516,28 @@ class Board:
 
     def update_game_status(self) -> GameState:
         
-        if not self.all_legal_moves(True):
+        if not self.CURRENT_WHITE_LEGAL_MOVES:
             self.GAME_STATE = GameState.BLACKWON
 
-        if not self.all_legal_moves(False):
+        if not self.CURRENT_BLACK_LEGAL_MOVES:
             self.GAME_STATE = GameState.WHITEWON
 
-    def all_legal_moves(self, color: bool) -> dict():
-        '''
-        Iterates through each piece on the board and calculates possible legal moves
+    # def all_legal_moves(self, color: bool) -> dict():
+    #     '''
+    #     Iterates through each piece on the board and calculates possible legal moves
         
-        Returns:
-            A dict containing each piece on this team and a list of its possible moves
-        '''
+    #     Returns:
+    #         A dict containing each piece on this team and a list of its possible moves
+    #     '''
 
-        pieces = self.get_pieces(is_white=color)
-        legal_moves = {}
-        for piece in pieces:
-            piece_moves = self.legal_moves(piece, check_for_checkmate=True)
-            if piece_moves:
-                legal_moves[piece] = piece_moves
+    #     pieces = self.get_pieces(is_white=color)
+    #     legal_moves = {}
+    #     for piece in pieces:
+    #         piece_moves = self.legal_moves(piece, check_for_checkmate=True)
+    #         if piece_moves:
+    #             legal_moves[piece] = piece_moves
 
-        return legal_moves
+    #     return legal_moves
 
     def legal_moves(self, piece: Piece, check_for_checkmate: bool) -> set():
         self.update_all_pinned_pieces()
@@ -537,17 +551,21 @@ class Board:
         displacements = self.PSEUDO_LEGAL_MOVEMENT[piece.name]
 
         for displacement in displacements:
-
-            if len(piece.pinned_directions) > 0 and displacement not in piece.pinned_directions:
+            if piece.name == Name.KNIGHT and piece.is_white and check_for_checkmate:
+                print(f"Direction: {displacement}", end=" ")
+            if len(piece.pinned_directions) > 0 and (displacement not in piece.pinned_directions):
+                print(f"PINNED")
                 continue
 
             dx, dy = displacement
             curr_col, curr_row = piece.col + dx, piece.row + dy
 
-            if piece.is_white:
-                print(f"Potential Move {piece.name} to {potential_move.target_position}")
+            
 
             while self.position_valid((curr_col,curr_row)):
+                if piece.name == Name.KNIGHT and piece.is_white and check_for_checkmate:
+                    print(f"Potential Move {piece.name} to {curr_col} {curr_row}")
+
                 target_piece = self.get_piece((curr_col,curr_row))
 
                 potential_move = Move(piece,target_piece,piece.getPos(),(curr_col,curr_row), MoveType.DEFAULT)
