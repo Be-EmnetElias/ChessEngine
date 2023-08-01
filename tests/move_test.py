@@ -1,4 +1,10 @@
+'''
+Tests legal moves by iterating through all possible games of a certain depth.
+'''
+
 from src.board import Board
+from src.helper import style
+
 
 board = Board("default")
 
@@ -17,10 +23,9 @@ def test_move_count_depth():
 
         for piece in moves:
             for move in moves[piece]:
-                board.move_piece(piece, move, simulation=True)
-                # print(f"Simulating {move}")
-                # board.print_board()
-                # print("== == == == \n\n")
+                current_move = board.move_piece(piece, move, simulation=True)
+                # print(f"{style.HEADER}{piece.name}{style.ENDC} : {move}")
+                # board.print_board(highlight=current_move)
                 num_of_moves += move_count_depth(depth-1, not is_white)
                 board.undo_move(move)
 
@@ -31,7 +36,7 @@ def test_move_count_depth():
     # assert depth_1 == 20
 
     # depth_2 = move_count_depth(2,True)
-    # assert depth_2 == 400
+    # assert depth_2 == 401
 
     # depth_3 = move_count_depth(3,True)
     # assert depth_3 == 8902

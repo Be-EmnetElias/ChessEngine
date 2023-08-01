@@ -94,19 +94,19 @@ class Main:
 
         current_move = None
         drag_x, drag_y = 0, 0
-        text = font.render(f"{drag_x} , {drag_y}", True, white)
-        
+        text = font.render(f"CURRENT LOCATION: {drag_x} , {drag_y}", True, white)
 
         while True: # self.Board.GAME_STATE == GameState.ACTIVE:
             self.screen.fill((0,0,0))
             self.screen.blit(self.bg[self.bg_index],(0,0))
-            self.screen.blit(text,(900,0))
+            self.screen.blit(text,(800,0))
 
-            if drag_x and drag_y and self.Board.position_valid((drag_x//100,drag_y//100)):
+            if self.Board.position_valid((drag_x//100,drag_y//100)):
                 pygame.draw.rect(self.screen, self.outline_color, pygame.Rect(drag_x ,drag_y,100,100))
 
             if previous_x_col and previous_y_row:
                 pygame.draw.rect(self.screen, self.highlight_color, pygame.Rect(previous_x_col,previous_y_row,100,100))
+
 
             if move_hints and show_hint and clicked_piece:
                 for move in move_hints:
@@ -180,8 +180,7 @@ class Main:
 
                         clicked_piece = board[clicked_row][clicked_col]
                     if clicked_piece:
-                        move_hints = self.Board.legal_moves(clicked_piece,check_for_checkmate=True)
-                    #print(f"{clicked_piece} was clicked at {clicked_col},{clicked_row}")
+                        move_hints = self.Board.CURRENT_WHITE_LEGAL_MOVES[clicked_piece] if clicked_piece.is_white else self.Board.CURRENT_BLACK_LEGAL_MOVES[clicked_piece]
                 
                 # mouse motion
                 elif event.type == pygame.MOUSEMOTION:
@@ -229,6 +228,16 @@ class Main:
                 elif event.type == pygame.QUIT:
                     pygame.quit()
                     sys.exit()
+
+            if clicked_piece:
+                piece_info = font.render(f"NAME: {clicked_piece.name}", True, white)
+                piece_info_2 = font.render(f"FIRSTMOVE: {clicked_piece.first_move}", True, white)
+                piece_info_3 = font.render(f"ENPASSANT: {clicked_piece.enPassant}", True, white)
+
+                self.screen.blit(piece_info,(800,50))
+                self.screen.blit(piece_info_2,(800,70))
+                self.screen.blit(piece_info_3,(800,90))
+
 
             for row in range(8):
                 for col in range(8):

@@ -9,6 +9,17 @@ class Name(Enum):
     QUEEN:int= 5
     KING:int= 6
 
+class style:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKCYAN = '\033[96m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
 class MoveType(Enum):
 
     def __str__(self) -> str:
@@ -91,6 +102,8 @@ class Move:
         self.target_position = target_position
         self.move_type = move_type
         self.rook_to_castle = None
-        
+        self.first_move = True
+        self.enPassant = False
+
     def __str__(self) -> str:
         return f"{self.move_type}: {self.piece.name} to {self.target_position} { f'capturing {self.captured_piece.name}' if self.captured_piece else ''}"

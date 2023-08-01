@@ -20,6 +20,7 @@ from src.helper import Piece
 from src.helper import MoveType
 from src.helper import GameState
 from src.helper import Move
+from src.helper import style
 
 
 class Board:
@@ -225,10 +226,10 @@ class Board:
             if enpassant_piece:
                 enpassant_piece.enPassant = True
 
-        self.update_current_legal_moves()
-            
+        self.update_current_legal_moves()            
 
     def update_current_legal_moves(self) -> None:
+
         for piece in self.get_pieces(True):
             moves = self.legal_moves(piece, check_for_checkmate=True)
             self.CURRENT_WHITE_LEGAL_MOVES.update({piece: moves})
@@ -236,6 +237,14 @@ class Board:
         for piece in self.get_pieces(False):
             moves = self.legal_moves(piece, check_for_checkmate=True)
             self.CURRENT_BLACK_LEGAL_MOVES.update({piece: moves})
+
+        # for piece in self.CURRENT_WHITE_LEGAL_MOVES:
+        #     moves = self.CURRENT_WHITE_LEGAL_MOVES[piece]
+        #     print(f"{piece} : [", end="")
+        #     for move in moves:
+        #         print(f"{move}", end=" , ")
+        #     print(f"] \n")
+        # print("\n\n\n")
 
     def get_position_fenstring(self) -> str:
         result = ""
@@ -309,20 +318,25 @@ class Board:
         print(f"{result}")
         return result 
     
-    def print_board(self) -> None:
+    def print_board(self, highlight: Move) -> None:
         for row in range(8):
             for col in range(8):
                 piece = self.board[row][col]
                 if piece:
-                    print(f"{piece.get_letter()} ", end="")
+                    if highlight and highlight.piece == piece:
+                        print(f"{style.OKGREEN}{piece.get_letter()}{style.ENDC} ", end="")
+                    else:
+                        print(f"{piece.get_letter()} ", end="")
                 else:
-                    print(". ",end="")
+                    if (col,row) == highlight.previous_position:
+                        print(f"{style.OKGREEN}x {style.ENDC} ", end="")
+                    else:
+                        print(". ",end="")
             print("\n")
 
     def user_valid_move(self, piece: Piece, position:tuple()) -> tuple:
         '''
         Returns True if the user move was a valid move, False otherwise. All valid moves are already calculated. 
-        TODO: apparently not returning the correct move, need to fix move_types to include check, checkmate and capture
         '''
 
         valid = False
@@ -368,6 +382,8 @@ class Board:
         target_col, target_row = move.target_position
         move_type = move.move_type
         target = (target_col, target_row)
+        save_enpassant = piece.enPassant
+
 
         if move_type in (MoveType.DEFAULT, MoveType.CASTLE_KING_SIDE, MoveType.CASTLE_QUEEN_SIDE):
 
@@ -378,6 +394,8 @@ class Board:
             piece.col = target_col
             piece.row = target_row
 
+            piece.enPassant = (piece.name == Name.PAWNW or piece.name == Name.PAWNB) and piece.first_move and abs(target_row-previous_row) == 2
+                
             if not simulation:
                 piece.x = target_col * 100
                 piece.y = target_row * 100
@@ -401,6 +419,7 @@ class Board:
                 rook.x = rook.col * 100
                 rook.y = rook.row * 100
 
+            rook.first_move = False
             result.rook_to_castle = (rook,captured_piece,previous_position,(target_col-1,target_row))
 
         if move_type == MoveType.CASTLE_QUEEN_SIDE:
@@ -420,6 +439,7 @@ class Board:
                 rook.x = rook.col * 100
                 rook.y = rook.row * 100
 
+            rook.first_move = False
             result.rook_to_castle = (rook,captured_piece,previous_position,(target_col+1,target_row))
             
 
@@ -463,29 +483,31 @@ class Board:
             self.MOVE_HISTORY.update({self.MOVE_NUMBER:result})
             self.MOVE_NUMBER += 1
             self.WHITE_TURN = not self.WHITE_TURN
-            self.update_game_status()
             self.update_current_legal_moves()
+            self.update_game_status()
 
-        for p in self.get_pieces(None): # Enpassant is only allowed for one turn
-            p.enPassant = False
-            
-        piece.enPassant = (piece.name == Name.PAWNW or piece.name == Name.PAWNB) and piece.first_move and abs(target_row-previous_row) == 2
-
+        result.first_move = piece.first_move
+        result.enPassant = save_enpassant
+        
         piece.first_move = False
-
+        
         return result
 
     def undo_move(self, move: Move) -> None:
+        # TODO: SAVE ENPASSANT SO IT CAN BE REVERSED
         piece = move.piece
         captured_piece = move.captured_piece
         previous_position = move.previous_position
         target_position = move.target_position
         move_type = move.move_type
-        piece.enPassant = False
         previous_col, previous_row = previous_position
         target_col, target_row = target_position
 
+        if piece.name not in (Name.PAWNW, Name.PAWNB):
+            piece.first_move = move.first_move
+
         # print(f"Undo {move_type} Move: {piece.name} to {previous_position} and restoring {captured_piece.name if captured_piece else 'none'} to {target_position}")
+        piece.enPassant = move.enPassant
 
         if move_type in (MoveType.DEFAULT, MoveType.CASTLE_KING_SIDE, MoveType.CASTLE_QUEEN_SIDE):
             self.board[previous_row][previous_col] = piece
@@ -493,10 +515,11 @@ class Board:
 
             piece.col = previous_col
             piece.row = previous_row
+            piece.first_move = previous_row == 6 if piece.name == Name.PAWNW else previous_row == 1
 
             if piece.name == Name.PAWNW:
                 piece.first_move = previous_row == 6
-            
+
             if piece.name == Name.PAWNB:
                 piece.first_move = previous_row == 1
 
@@ -521,7 +544,6 @@ class Board:
 
             piece.col = previous_col
             piece.row = previous_row
-            captured_piece.enPassant = True
 
         if move_type == MoveType.PROMOTION:
             self.board[target_row][target_col] = captured_piece
@@ -604,14 +626,14 @@ class Board:
                 if (not target_piece or self.are_enemies(target_piece, piece)) and self.king_safe_after_move(potential_move, check_for_checkmate):
                     king_moves.add(potential_move)
                     
-                    captured_piece = self.get_piece((curr_col+dx,curr_row))
-                    potential_move = Move(piece,captured_piece,piece.getPos(),(curr_col+dx,curr_row), MoveType.CASTLE_KING_SIDE if dx == 1 else MoveType.CASTLE_QUEEN_SIDE)
+                    if piece.first_move and self.position_valid((curr_col+dx,curr_row)):
+                        captured_piece = self.get_piece((curr_col+dx,curr_row))
+                        potential_move = Move(piece,captured_piece,piece.getPos(),(curr_col+dx,curr_row), MoveType.CASTLE_KING_SIDE if dx == 1 else MoveType.CASTLE_QUEEN_SIDE)
 
-                    if dx == 1 and dy == 0 and piece.first_move and self.position_valid((curr_col+dx,curr_row)) and not self.get_piece((curr_col+dx,curr_row)) and self.can_rook_castle(piece,dx) and self.king_safe_after_move(potential_move, check_for_checkmate):
-                        king_moves.add(Move(piece,captured_piece,piece.getPos(),(curr_col, curr_row), MoveType.CASTLE_KING_SIDE))
+                        if (dx == 1 or dx == -1) and dy == 0 and not self.get_piece((curr_col+dx,curr_row)) and self.can_rook_castle(piece,dx) and self.king_safe_after_move(potential_move, check_for_checkmate):
+                            king_moves.add(potential_move)
 
-                    if dx == -1 and dy == 0  and piece.first_move and self.position_valid((curr_col+dx,curr_row)) and not self.get_piece((curr_col+dx,curr_row)) and self.can_rook_castle(piece,dx) and self.king_safe_after_move(potential_move, check_for_checkmate):
-                        king_moves.add(potential_move)
+                    
 
 
         return king_moves
@@ -635,16 +657,16 @@ class Board:
             target_pos = (curr_col, curr_row)
             enpassant_piece = self.get_piece((curr_col,piece.row))
 
-            potential_move = Move(piece,target_piece,piece.getPos(),(curr_col,curr_row), MoveType.DEFAULT)
+            potential_move = Move(piece,target_piece,piece.getPos(),(curr_col,curr_row), move_type)
 
             # Forward Move
             if dx == 0 and target_piece == None and self.king_safe_after_move(potential_move, check_for_checkmate) and check_for_checkmate: 
                 pawn_moves.add(potential_move)
 
                 # Double Forward Move
-                if piece.first_move and self.get_piece((curr_col,curr_row+dy)) == None and check_for_checkmate:
+                if piece.first_move and not self.get_piece((curr_col,curr_row+dy)) and check_for_checkmate:
                     captured_piece = self.get_piece((curr_col,curr_row+dy))
-                    potential_move = Move(piece,captured_piece,piece.getPos(),(curr_col,curr_row+dy), MoveType.DEFAULT)
+                    potential_move = Move(piece,captured_piece,piece.getPos(),(curr_col,curr_row+dy), move_type)
 
                     if self.king_safe_after_move(potential_move, check_for_checkmate):
                         pawn_moves.add(potential_move)
@@ -653,7 +675,8 @@ class Board:
             # Diagonal Capture
             if dx != 0 and self.are_enemies(piece,target_piece) and self.king_safe_after_move(potential_move, check_for_checkmate):
                 pawn_moves.add(potential_move)
-            
+
+            target_piece = self.get_piece((curr_row,piece.col))
             potential_move = Move(piece,target_piece,piece.getPos(),(curr_col,curr_row), MoveType.ENPASSANT)
 
             # Enpassant Capture
