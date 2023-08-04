@@ -1,9 +1,9 @@
-package helper;
+package util;
 
 public class Piece {
     
     public Name name;
-    public boolean isWhite;
+    public boolean white;
     public int col;
     public int row;
     public int imgIndex;
@@ -14,7 +14,7 @@ public class Piece {
     
     public Piece(Name name, boolean isWhite, int col, int row, int imgIndex) {
         this.name = name;
-        this.isWhite = isWhite;
+        this.white = isWhite;
         this.col = col;
         this.row = row;
         this.imgIndex = imgIndex;
@@ -24,8 +24,8 @@ public class Piece {
         this.canSlide = !(name == Name.KING || name == Name.PAWNW || name == Name.PAWNB || name == Name.KNIGHT);
     }
 
-    public int[] getPos() {
-        return new int[]{this.col,this.row};
+    public Square getPosition() {
+        return new Square(this.col,this.row);
     }
 
     /**
@@ -35,16 +35,16 @@ public class Piece {
      */
     
     public String getLetter() {
-        if (this.isWhite) {
+        if (this.white) {
             if (this.name == Name.KNIGHT) {
-                return "N";
+                return "N ";
             }
-            return this.name.toString().substring(0, 1);
+            return this.name.toString().substring(0, 1) + " ";
         } else {
             if (this.name == Name.KNIGHT) {
-                return "n";
+                return "n ";
             }
-            return this.name.toString().substring(0, 1).toLowerCase();
+            return this.name.toString().substring(0, 1).toLowerCase() + " ";
         }
     }
 }

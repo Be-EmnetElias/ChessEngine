@@ -1,17 +1,21 @@
-package helper;
+package util;
 
 public class Move {
 
     public Piece piece;
     public Piece capturedPiece;
-    public int[] previousPosition;
-    public int[] targetPosition;
+    public Square previousPosition;
+    public Square targetPosition;
     public MoveType moveType;
     public Piece rookToCastle;
+    public Square rookTargetPosition;
+    public Square rookPreviousPosition;
     public boolean firstMove;
+    public Piece enPassantPiece;
+    public Square enPassantPosition;
     public boolean enPassant;
 
-    public Move(Piece piece, Piece capturedPiece, int[] previousPosition, int[] targetPosition, MoveType moveType) {
+    public Move(Piece piece, Piece capturedPiece, Square previousPosition, Square targetPosition, MoveType moveType) {
         this.piece = piece;
         this.capturedPiece = capturedPiece;
         this.previousPosition = previousPosition;

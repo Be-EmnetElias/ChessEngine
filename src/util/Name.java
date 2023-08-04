@@ -1,4 +1,4 @@
-package helper;
+package util;
 
 public enum Name {
 
