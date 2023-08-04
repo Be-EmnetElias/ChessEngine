@@ -24,10 +24,8 @@ def test_move_count_depth():
         for piece in moves:
             for move in moves[piece]:
                 current_move = board.move_piece(piece, move, simulation=True)
-                # print(f"{style.HEADER}{piece.name}{style.ENDC} : {move}")
-                # board.print_board(highlight=current_move)
                 num_of_moves += move_count_depth(depth-1, not is_white)
-                board.undo_move(move)
+                board.undo_move(current_move)
 
         return num_of_moves
 
