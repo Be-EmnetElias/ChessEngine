@@ -14,4 +14,9 @@ public class Square {
         this.row += displacement.row;
 
     }
+
+    @Override
+    public String toString(){
+        return "[" + this.col + " , " + this.row + "]";
+    }
 }

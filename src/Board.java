@@ -33,12 +33,7 @@ public class Board {
     /**
      * A mapping from each Piece type to a list of all legal moves for that type for the white player in the current game state.
      */
-    public HashMap<Piece, HashSet<Move>> CURRENT_WHITE_LEGAL_MOVES;
-
-    /**
-     * A mapping from each Piece type to a list of all legal moves for that type for the black player in the current game state.
-     */
-    public HashMap<Piece, HashSet<Move>> CURRENT_BLACK_LEGAL_MOVES;
+    public HashMap<Piece, HashSet<Move>> CURRENT_LEGAL_MOVES;
 
     /**
      * A boolean that is true if it's white's turn to move and false if it's black's turn.
@@ -61,10 +56,7 @@ public class Board {
 
         this.MOVE_HISTORY = new HashMap<>();
 
-        this.CURRENT_WHITE_LEGAL_MOVES = new HashMap<>();
-
-        this.CURRENT_BLACK_LEGAL_MOVES = new HashMap<>();
-
+        this.CURRENT_LEGAL_MOVES = new HashMap<>();
 
     }
 
@@ -111,6 +103,9 @@ public class Board {
 
     }
 
+    public void setBoard(){
+        setBoard("");
+    }
     /**
      * Creates a board with pieces according to this fenposition.
      * Updates GameState, Move_Number etc....
@@ -129,6 +124,9 @@ public class Board {
                 break;
             case "random":
                 fenposition = "r3k2r/ppqbpp1p/n1pp2pb/8/8/2PP1NP1/PPQ1PPBP/2KR3R b kq - random";
+                break;
+            case "knight_only":
+                fenposition = "8/4N3/8/8/8/8/8/8 w - - 0 59";
                 break;
             default:
                 fenposition = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
@@ -271,18 +269,17 @@ public class Board {
     }
 
     public void updateCurrentLegalMoves(){
+        HashSet<Piece> allPieces = getPieces(true);
+        allPieces.addAll(getPieces(false));
+        for(Piece piece: allPieces){
+            if(piece.white == this.WHITE_TURN){
+                HashSet<Move> moves = legalMoves(piece, true);
+                this.CURRENT_LEGAL_MOVES.put(piece, moves);
 
-        for(Piece piece: getPieces(true)){
-            HashSet<Move> moves = legalMoves(piece, true);
-            System.out.print(piece.name + " | ");
-            System.out.println();
-            this.CURRENT_WHITE_LEGAL_MOVES.put(piece, moves);
+            }
         }
 
-        for(Piece piece: getPieces(false)){
-            HashSet<Move> moves = legalMoves(piece, true);
-            this.CURRENT_BLACK_LEGAL_MOVES.put(piece, moves);
-        }
+        
 
     }
 
@@ -316,10 +313,10 @@ public class Board {
 
         Move potentialMove = null;
 
-        HashSet<Move> legalMovesForPiece = (piece.white) ? this.CURRENT_WHITE_LEGAL_MOVES.get(piece):this.CURRENT_BLACK_LEGAL_MOVES.get(piece);
+        HashSet<Move> legalMovesForPiece = this.CURRENT_LEGAL_MOVES.get(piece);
         
         for(Move move: legalMovesForPiece){
-            if(position.equals(move.targetPosition) /* TODO: && piece.white == this.WHITE_TURN*/){
+            if(position.equals(move.targetPosition)){
                 potentialMove = new Move(move.piece, move.capturedPiece, move.previousPosition, move.targetPosition, move.moveType);
                 if (areEnemies(piece, move.capturedPiece)) potentialMove.moveType = MoveType.CAPTURE;
 
@@ -393,6 +390,7 @@ public class Board {
 
         }
         
+        result.whiteTurn = this.WHITE_TURN;
         this.MOVE_HISTORY.put(this.MOVE_NUMBER, result);
         this.MOVE_NUMBER += 1;
         this.WHITE_TURN = !this.WHITE_TURN;
@@ -408,6 +406,7 @@ public class Board {
         Square previousPosition = move.previousPosition;
         Square targetPosition = move.targetPosition;
         MoveType moveType = move.moveType;
+        this.WHITE_TURN = move.whiteTurn;
 
         if(piece.name != Name.PAWNW && piece.name != Name.PAWNB){
             piece.firstMove = move.firstMove;
@@ -483,24 +482,29 @@ public class Board {
         if(piece.name == Name.PAWNW || piece.name == Name.PAWNB) return legalMoves; //return legalMovesPawn(piece, checkKingSafety, pinnedPieces);
         if (piece.name == Name.KING) return legalMoves; //return legalMovesKing(piece, checkKingSafety, pinnedPieces);
         
+        System.out.println(piece.name);
         HashSet<Square> displacements = this.PSEUDO_LEGAL_MOVEMENT.get(piece.name);
 
         for(Square displacement: displacements){
 
-            if(pinnedPieces.keySet().contains(piece) && !pinnedPieces.get(piece).contains(displacement)) continue;
+            System.out.println("\n\n\t DISPLACEMENT: " + displacement + "\n");
+            //if(pinnedPieces.keySet().contains(piece) && !pinnedPieces.get(piece).contains(displacement)) continue;
 
             Square previousPosition = piece.getPosition();
             Square targetPosition = piece.getPosition();
             targetPosition.displace(displacement);
 
+            System.out.println("\t SEARCHING...");
             while(validPosition(targetPosition)){
 
                 Piece targetPiece = getPiece(targetPosition);
 
                 Move potentialMove = new Move(piece,targetPiece,previousPosition,targetPosition,MoveType.DEFAULT);
+                System.out.print("\t\t FOUND POTENTIAL MOVE...");
 
                 // Empty spaces or enemies are added as long as the king is safe after this move
                 if((targetPosition == null || areEnemies(targetPiece, piece)) && kingSafeAfterMove(potentialMove, checkKingSafety)){
+                    System.out.print("\t NEW MOVE \n");
                     legalMoves.add(potentialMove);
                 }
 
@@ -508,9 +512,8 @@ public class Board {
                 if(targetPiece != null || !piece.canSlide) break;
                 
                 targetPosition.displace(displacement);
-
             }
-
+            System.out.println();
         }
 
 
@@ -712,8 +715,8 @@ public class Board {
                 return piece;
             }
         }
-
-        throw new IllegalStateException("KING IS NOT FOUND");
+        return null;
+        //throw new IllegalStateException("KING IS NOT FOUND");
 
     }
 
