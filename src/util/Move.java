@@ -29,9 +29,9 @@ public class Move {
         this.enPassant = false;
     }
 
-    public String STRING() {
-        return "HI";
-        //return this.moveType + ": " + this.piece.name + " to " + this.targetPosition + (this.capturedPiece != null ? " capturing " + this.capturedPiece.name : "");
+    @Override
+    public String toString() {
+        return this.moveType + ": " + this.piece.name + " to " + this.targetPosition + (this.capturedPiece != null ? " capturing " + this.capturedPiece.name : "");
     }
 }
 

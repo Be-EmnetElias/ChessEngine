@@ -28,12 +28,7 @@ public class Board {
     /**
      * A history of all moves made in the game.
      */
-    public HashMap<Integer, Move> MOVE_HISTORY;
-
-    /**
-     * A mapping from each Piece type to a list of all legal moves for that type for the white player in the current game state.
-     */
-    public HashMap<Piece, HashSet<Move>> CURRENT_LEGAL_MOVES;
+    public HashMap<Integer, Move> MOVE_HISTORY;    
 
     /**
      * A boolean that is true if it's white's turn to move and false if it's black's turn.
@@ -55,8 +50,6 @@ public class Board {
         initPSEUDO_LEGAL_MOVEMENT();
 
         this.MOVE_HISTORY = new HashMap<>();
-
-        this.CURRENT_LEGAL_MOVES = new HashMap<>();
 
     }
 
@@ -103,9 +96,8 @@ public class Board {
 
     }
 
-    public void setBoard(){
-        setBoard("");
-    }
+    public void setBoard(){ setBoard(""); }
+
     /**
      * Creates a board with pieces according to this fenposition.
      * Updates GameState, Move_Number etc....
@@ -126,7 +118,10 @@ public class Board {
                 fenposition = "r3k2r/ppqbpp1p/n1pp2pb/8/8/2PP1NP1/PPQ1PPBP/2KR3R b kq - random";
                 break;
             case "knight_only":
-                fenposition = "8/4N3/8/8/8/8/8/8 w - - 0 59";
+                fenposition = "2k5/8/8/8/4N3/8/8/2K5 w - - 0 59";
+                break;
+            case "pawn_only":
+                fenposition = "2k5/8/8/5pP1/8/3p4/4P3/2K5 w - f5 0 59";
                 break;
             default:
                 fenposition = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
@@ -263,21 +258,34 @@ public class Board {
             int dy = (row > 6) ? -1:1;
             Piece enPassantPiece = getPiece(new Square(col, row+dy));
             if (enPassantPiece != null) enPassantPiece.enPassant = true;
+            if(enPassantPiece!=null && enPassantPiece.enPassant){
+                System.out.println("PIECE CAN PASAANT");
+            }
         }
 
         updateCurrentLegalMoves();
     }
 
-    public void updateCurrentLegalMoves(){
+    public HashMap<Piece, HashSet<Move>> updateCurrentLegalMoves(){
+        HashMap<Piece, HashSet<Move>> CURRENT_LEGAL_MOVES = new HashMap<>();
         HashSet<Piece> allPieces = getPieces(true);
         allPieces.addAll(getPieces(false));
+        System.out.println("MOVE: " + this.MOVE_NUMBER);
         for(Piece piece: allPieces){
             if(piece.white == this.WHITE_TURN){
                 HashSet<Move> moves = legalMoves(piece, true);
-                this.CURRENT_LEGAL_MOVES.put(piece, moves);
+                CURRENT_LEGAL_MOVES.put(piece, moves);
+                String color = (piece.white) ? "WHITE":"BLACK";
+                System.out.println("\t" + color + " " + piece.name);
+                for(Move move:moves){
+                    System.out.println("\t\t" + move);
+                }
+                System.out.println();
 
             }
         }
+
+        return CURRENT_LEGAL_MOVES;
 
         
 
@@ -313,7 +321,7 @@ public class Board {
 
         Move potentialMove = null;
 
-        HashSet<Move> legalMovesForPiece = this.CURRENT_LEGAL_MOVES.get(piece);
+        HashSet<Move> legalMovesForPiece = updateCurrentLegalMoves().get(piece);
         
         for(Move move: legalMovesForPiece){
             if(position.equals(move.targetPosition)){
@@ -394,7 +402,7 @@ public class Board {
         this.MOVE_HISTORY.put(this.MOVE_NUMBER, result);
         this.MOVE_NUMBER += 1;
         this.WHITE_TURN = !this.WHITE_TURN;
-        this.updateCurrentLegalMoves();
+        //TODO: this.updateCurrentLegalMoves();
         //TODO: this.updateGameStatus();
 
         return result;
@@ -479,32 +487,27 @@ public class Board {
         HashSet<Move> legalMoves = new HashSet<>();
 
         // Pawns and Kings are calculated separately
-        if(piece.name == Name.PAWNW || piece.name == Name.PAWNB) return legalMoves; //return legalMovesPawn(piece, checkKingSafety, pinnedPieces);
+        if(piece.name == Name.PAWNW || piece.name == Name.PAWNB) return legalMovesPawn(piece, checkKingSafety, pinnedPieces);
         if (piece.name == Name.KING) return legalMoves; //return legalMovesKing(piece, checkKingSafety, pinnedPieces);
         
-        System.out.println(piece.name);
         HashSet<Square> displacements = this.PSEUDO_LEGAL_MOVEMENT.get(piece.name);
 
         for(Square displacement: displacements){
 
-            System.out.println("\n\n\t DISPLACEMENT: " + displacement + "\n");
             //if(pinnedPieces.keySet().contains(piece) && !pinnedPieces.get(piece).contains(displacement)) continue;
 
             Square previousPosition = piece.getPosition();
             Square targetPosition = piece.getPosition();
             targetPosition.displace(displacement);
 
-            System.out.println("\t SEARCHING...");
             while(validPosition(targetPosition)){
 
                 Piece targetPiece = getPiece(targetPosition);
 
                 Move potentialMove = new Move(piece,targetPiece,previousPosition,targetPosition,MoveType.DEFAULT);
-                System.out.print("\t\t FOUND POTENTIAL MOVE...");
 
                 // Empty spaces or enemies are added as long as the king is safe after this move
-                if((targetPosition == null || areEnemies(targetPiece, piece)) && kingSafeAfterMove(potentialMove, checkKingSafety)){
-                    System.out.print("\t NEW MOVE \n");
+                if((targetPiece == null || areEnemies(targetPiece, piece)) && kingSafeAfterMove(potentialMove, checkKingSafety)){
                     legalMoves.add(potentialMove);
                 }
 
@@ -571,53 +574,68 @@ public class Board {
         HashSet<Square> displacements = this.PSEUDO_LEGAL_MOVEMENT.get(pawn.name);
 
         for(Square displacement: displacements){
-            if(pinnedPieces.keySet().contains(pawn) && !pinnedPieces.get(pawn).contains(displacement)) continue;
-
-            Square previousPosition = pawn.getPosition();
-            Square targetPosition = pawn.getPosition();
-            targetPosition.displace(displacement);
-
-            if(!validPosition(targetPosition)) continue;
-
-            MoveType moveType = ((pawn.white && pawn.row == 0) || (!pawn.white && pawn.row == 7)) ? MoveType.PROMOTION:MoveType.DEFAULT;
-            Piece targetPiece = getPiece(targetPosition);
-
-            Move potentialMove = new Move(pawn,targetPiece,previousPosition, targetPosition, moveType);
             
-            // Forward move
-            if(targetPosition.col == 0 && targetPiece == null && kingSafeAfterMove(potentialMove, checkKingSafety)){
+            if(pinnedPieces.get(pawn) != null && !pinnedPieces.get(pawn).contains(displacement)) continue; //If this piece is pinned, it can only move in pinned displacements
+
+            int dx = displacement.col;
+            int dy = displacement.row;
+
+            Square prevPos = pawn.getPosition();
+            int currCol = prevPos.col + dx;
+            int currRow = prevPos.row + dy;
+
+            if(!validPosition(new Square(currCol,currRow))) continue; //Move must be on the board
+
+            MoveType moveType = ((pawn.white && currRow ==0) || (!pawn.white && currRow == 7)) ? MoveType.PROMOTION : MoveType.DEFAULT;
+        
+            Piece targetPiece = getPiece(new Square(currCol,currRow));
+
+            Square targetPosition = new Square(currCol, currRow);
+
+            Piece enPassantPiece = getPiece(new Square(currCol,prevPos.row));
+
+            Move potentialMove = new Move(pawn, targetPiece, prevPos,targetPosition,moveType);
+
+            if(dx==0 && targetPiece == null && kingSafeAfterMove(potentialMove, checkKingSafety)){
                 pawnMoves.add(potentialMove);
 
-                // // Double Forward Move
-                // if(pawn.firstMove){
+                Square newTargetPosition = new  Square(currCol,currRow+dy);
 
-                //     targetPosition.displace(new Square(0,targetPosition.row));
-                //     targetPiece = getPiece(targetPosition);
-                //     potentialMove = new Move(pawn,targetPiece,previousPosition,targetPosition,moveType);
+                if(pawn.firstMove && getPiece(newTargetPosition) == null){
+                    targetPiece = null;
 
-                //     if(targetPosition == null && kingSafeAfterMove(potentialMove, checkKingSafety)){
-                //         pawnMoves.add(potentialMove);
-                //     }
-                // }
+                    Move doubleMove = new Move(pawn,targetPiece,prevPos,newTargetPosition,moveType);
+
+                    if(kingSafeAfterMove(doubleMove, checkKingSafety)){
+                        pawnMoves.add(doubleMove);
+                    }
+                }
             }
 
-            // // Diagonal Capture
-            // if (targetPosition.col != 0 && areEnemies(targetPiece, pawn) && kingSafeAfterMove(potentialMove, checkKingSafety)){
-            //     pawnMoves.add(potentialMove);
-            // }
 
-            // Square enPassantPosition = new Square(previousPosition.col, targetPosition.row);
-            // Piece enPassantPiece = getPiece(enPassantPosition);
-            // potentialMove.moveType = MoveType.ENPASSANT;
-            // potentialMove.enPassantPiece = enPassantPiece;
+            if(dx!=0){
 
-            // // Enpassant capture
-            // if(targetPosition.col != 0 && targetPiece == null && areEnemies(enPassantPiece, pawn) && enPassantPiece.enPassant && kingSafeAfterMove(potentialMove, checkKingSafety)){
-            //     pawnMoves.add(potentialMove);
-            // }else{
-            //     potentialMove.moveType = moveType;
-            //     potentialMove.enPassantPiece = null;
-            // }
+                if(areEnemies(pawn,targetPiece) && kingSafeAfterMove(potentialMove, checkKingSafety)){
+                    pawnMoves.add(potentialMove);
+                }
+
+                Move enPassantMove = new Move(pawn,targetPiece,prevPos,targetPosition,MoveType.ENPASSANT);
+                
+                if(targetPiece == null && enPassantPiece != null && areEnemies(enPassantPiece, pawn)){
+                    System.out.println(prevPos + " PIECE CAN DIAG, NOW CHECKING ENPASSANT " + enPassantPiece.name);
+                    
+                }
+
+                if(targetPiece==null && areEnemies(enPassantPiece,pawn) && enPassantPiece.enPassant && kingSafeAfterMove(enPassantMove, checkKingSafety)){
+                    System.out.println("ENPASSANT PIECE " + enPassantPiece.enPassant);
+                    pawnMoves.add(enPassantMove);
+                }else if(enPassantPiece!=null && enPassantPiece.enPassant){
+                    System.out.println("DX " + dx);
+                    System.out.println("TargetPiece " + targetPiece==null);
+                }
+
+            }
+        
         }
 
         return pawnMoves;
@@ -715,8 +733,8 @@ public class Board {
                 return piece;
             }
         }
-        return null;
-        //throw new IllegalStateException("KING IS NOT FOUND");
+        
+        throw new IllegalStateException("KING IS NOT FOUND");
 
     }
 

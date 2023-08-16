@@ -9,9 +9,9 @@ public class Square {
         this.row = row;
     }
 
-    public void displace(Square displacement){
-        this.col += displacement.col;
-        this.row += displacement.row;
+    public Square displace(Square displacement){
+        return new Square(this.col += displacement.col,this.row += displacement.row);
+
 
     }
 
