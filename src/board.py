@@ -226,7 +226,8 @@ class Board:
             if enpassant_piece:
                 enpassant_piece.enPassant = True
 
-        self.update_current_legal_moves()            
+        self.update_current_legal_moves()
+                 
 
     def update_current_legal_moves(self) -> None:
 
@@ -246,6 +247,41 @@ class Board:
         #     print(f"] \n")
         # print("\n\n\n")
 
+    def move_count_depth(self, depth: int, is_white: bool) -> int:
+        if depth == 0:
+            return 1
+
+        moves = {}
+        for piece in self.get_pieces(is_white):
+            moves_piece = ({piece:self.legal_moves(piece, check_for_checkmate=True)})
+            moves |= moves_piece
+
+        num_of_moves = 0
+
+        for piece in moves:
+            for move in moves[piece]:
+                current_move = self.move_piece(piece, move, simulation=True)
+                num_of_moves += self.move_count_depth(depth-1, not is_white)
+                self.undo_move(current_move)
+
+        return num_of_moves
+    
+    def getMoveStr(self,move: Move) -> str:
+        prev_col, prev_row = move.previous_position
+        targ_col, targ_row = move.target_position
+
+        square_conversion = {
+                0:'a',
+                1:'b',
+                2:'c',
+                3:'d',
+                4:'e',
+                5:'f',
+                6:'g',
+                7:'h'
+            }
+        return f"{square_conversion[prev_col]}{8-prev_row}{square_conversion[targ_col]}{8-targ_row}"
+        
     def get_position_fenstring(self) -> str:
         result = ""
         enpassant_piece = list()
@@ -660,8 +696,9 @@ class Board:
             potential_move = Move(piece,target_piece,piece.getPos(),(curr_col,curr_row), move_type)
 
             # Forward Move
-            if dx == 0 and target_piece == None and self.king_safe_after_move(potential_move, check_for_checkmate) and check_for_checkmate: 
-                pawn_moves.add(potential_move)
+            if dx == 0 and target_piece == None: 
+                if(self.king_safe_after_move(potential_move, check_for_checkmate)):
+                    pawn_moves.add(potential_move)
 
                 # Double Forward Move
                 if piece.first_move and not self.get_piece((curr_col,curr_row+dy)) and check_for_checkmate:

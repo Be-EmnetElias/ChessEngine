@@ -72,6 +72,9 @@ class Piece:
     def getPos(self) -> tuple():
         return (self.col,self.row)
     
+    
+            
+        
     def get_letter(self) -> str:
         if self.is_white:
             if self.name == Name.KNIGHT:
