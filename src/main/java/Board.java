@@ -1,6 +1,7 @@
+package main.java;
 import java.util.*;
 
-import util.*;
+import main.java.util.*;
 
 public class Board {
 
@@ -509,7 +510,6 @@ public class Board {
                 
                 targetPosition.displace(displacement);
             }
-            System.out.println();
         }
 
 
