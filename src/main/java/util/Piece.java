@@ -6,18 +6,16 @@ public class Piece {
     public boolean white;
     public int col;
     public int row;
-    public int imgIndex;
     public boolean firstMove;
     public boolean enPassant;
     public boolean canSlide;
 
     
-    public Piece(Name name, boolean isWhite, int col, int row, int imgIndex) {
+    public Piece(Name name, boolean isWhite, int col, int row) {
         this.name = name;
         this.white = isWhite;
         this.col = col;
         this.row = row;
-        this.imgIndex = imgIndex;
 
         this.firstMove = true;
         this.enPassant = false;

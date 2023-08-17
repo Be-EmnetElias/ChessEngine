@@ -29,6 +29,20 @@ public class Move {
         this.enPassant = false;
     }
 
+    public String getStr(){
+        // row = 8 - Integer.parseInt(enpassantSquare.charAt(1)+"");
+        // col = enpassantSquare.charAt(0) - 97;
+
+        int prevCol = previousPosition.col;
+        int prevRow = previousPosition.row;
+
+        int targCol = targetPosition.col;
+        int targRow = targetPosition.row;
+
+
+
+        return (char)(prevCol+97)+""+(8-prevRow)+""+(char)(targCol+97)+""+(8-targRow);
+    }
     @Override
     public String toString() {
         return this.moveType + ": " + this.piece.name + " to " + this.targetPosition + (this.capturedPiece != null ? " capturing " + this.capturedPiece.name : "");

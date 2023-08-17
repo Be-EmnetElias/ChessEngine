@@ -10,9 +10,13 @@ public class Square {
     }
 
     public Square displace(Square displacement){
-        return new Square(this.col += displacement.col,this.row += displacement.row);
+        return new Square(this.col + displacement.col,this.row + displacement.row);
 
 
+    }
+
+    public boolean equals(Square other){
+        return this.col == other.col && this.row == other.row;
     }
 
     @Override

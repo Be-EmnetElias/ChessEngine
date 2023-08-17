@@ -42,8 +42,7 @@ public class Board {
     public int BOARD_ORIENTATION;
 
     /**
-     * Initializes board class. Use {#link }
-     * @param initial_position
+     * Constructor
      */
     public Board(){
 
@@ -58,24 +57,23 @@ public class Board {
      * Initializes PSEUDO_LEGAL_MOVEMENT with piece names and their displacements
      */
     private void initPSEUDO_LEGAL_MOVEMENT(){
-        HashSet<Square> PAWNW = new HashSet<>(Arrays.asList(
-            new Square(0,-1), new Square(-1,-1), new Square(1,-1)
-        ));
+        HashSet<Square> PAWNW = new HashSet<>(Arrays.asList(new Square(0,-1), new Square(-1,-1), new Square(1,-1)));
         
-        HashSet<Square> PAWNB = new HashSet<>(Arrays.asList(
-            new Square(0,1), new Square(-1,1), new Square(1,1)
-        ));
+        HashSet<Square> PAWNB = new HashSet<>(Arrays.asList(new Square(0,1), new Square(-1,1), new Square(1,1)));
 
-        HashSet<Square> KNIGHT = new HashSet<>(Arrays.asList(
+        HashSet<Square> KNIGHT = new HashSet<>(
+        Arrays.asList(
             new Square(1,2), new Square(-1,2), new Square(1,-2), new Square(-1,-2),
             new Square(2,1), new Square(-2,1), new Square(2,-1), new Square(-2,-1)
         ));
 
-        HashSet<Square> BISHOP = new HashSet<>(Arrays.asList(
+        HashSet<Square> BISHOP = new HashSet<>(
+        Arrays.asList(
             new Square(1,1), new Square(-1,1), new Square(1,-1), new Square(-1,-1)
         ));
 
-        HashSet<Square> ROOK = new HashSet<>(Arrays.asList(
+        HashSet<Square> ROOK = new HashSet<>(
+        Arrays.asList(
             new Square(1,0), new Square(-1,0), new Square(0,1), new Square(0,-1)
         ));
 
@@ -97,7 +95,7 @@ public class Board {
 
     }
 
-    public void setBoard(){ setBoard(""); }
+    public void setBoard(){ setBoard("start"); }
 
     /**
      * Creates a board with pieces according to this fenposition.
@@ -115,6 +113,9 @@ public class Board {
             case "castle_test":
                 fenposition = "r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 0";
                 break;
+            case "start":
+                fenposition = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - random";
+                break;
             case "random":
                 fenposition = "r3k2r/ppqbpp1p/n1pp2pb/8/8/2PP1NP1/PPQ1PPBP/2KR3R b kq - random";
                 break;
@@ -125,7 +126,6 @@ public class Board {
                 fenposition = "2k5/1P6/8/5pP1/8/3p4/4P3/2K5 w - f5 0 59";
                 break;
             default:
-                fenposition = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
                 break;
         }
 
@@ -223,7 +223,7 @@ public class Board {
             }
 
             // TODO: When making a new piece, its firstMove is auto set to true.
-            if (name != null) setPiece(new Piece(name,white,col,row,image_index),new Square(col,row));
+            if (name != null) setPiece(new Piece(name,white,col,row),new Square(col,row));
             
 
             col = (col >= 8) ? 0:col+1;
@@ -260,10 +260,9 @@ public class Board {
             if (enPassantPiece != null) enPassantPiece.enPassant = true;      
         }
 
-        updateCurrentLegalMoves();
     }
 
-    public HashMap<Piece, HashSet<Move>> updateCurrentLegalMoves(){
+    public HashMap<Piece, HashSet<Move>> getCurrentLegalMoves(){
         HashMap<Piece, HashSet<Move>> CURRENT_LEGAL_MOVES = new HashMap<>();
 
         for(Piece piece: getPieces(this.WHITE_TURN)){
@@ -296,6 +295,18 @@ public class Board {
 
     }
 
+    public void printCurrentMoves(){
+        HashMap<Piece, HashSet<Move>> moves = getCurrentLegalMoves();
+        for(Piece piece: moves.keySet()){
+            HashSet<Move> pieceMoves = moves.get(piece);
+            System.out.println(piece.name);
+            for(Move move: pieceMoves){
+                System.out.println("\t" + move);
+            }
+            System.out.println("=====================================");
+        }
+    }
+
     /**
      * Checks whether this piece can move to this position. This function is called by the visuals to see
      * if a user-selected piece can move to a user-selected position
@@ -307,7 +318,7 @@ public class Board {
 
         Move potentialMove = null;
 
-        HashSet<Move> legalMovesForPiece = updateCurrentLegalMoves().get(piece);
+        HashSet<Move> legalMovesForPiece = getCurrentLegalMoves().get(piece);
         
         for(Move move: legalMovesForPiece){
             if(position.equals(move.targetPosition)){
@@ -341,6 +352,7 @@ public class Board {
         Boolean enPassantSave = piece.enPassant;
 
         if ((moveType == MoveType.DEFAULT) || ( moveType == MoveType.CASTLE_KING_SIDE) || (moveType == MoveType.CASTLE_QUEEN_SIDE)){
+            if(targetPosition.col == -1 || targetPosition.row ==-1) System.out.println(move.piece.name + " , " + move.previousPosition + " " + move.targetPosition);
             setPiece(piece,targetPosition);
             setPiece(null,previousPosition);
 
@@ -393,8 +405,8 @@ public class Board {
         this.WHITE_TURN = !this.WHITE_TURN;
         piece.firstMove = false;
 
-        //TODO: this.updateCurrentLegalMoves();
-        //TODO: this.updateGameStatus();
+        // this.updateCurrentLegalMoves();
+        // this.updateGameStatus();
         //this.MOVE_HISTORY.put(this.MOVE_NUMBER, result);
         //this.MOVE_NUMBER += 1;
 
@@ -470,7 +482,9 @@ public class Board {
 
     public GameState updateGameStatus(){
 
-        throw new UnsupportedOperationException();
+
+
+        return GameState.ACTIVE;
 
     }
 
@@ -492,7 +506,7 @@ public class Board {
 
             Square previousPosition = piece.getPosition();
             Square targetPosition = piece.getPosition();
-            targetPosition.displace(displacement);
+            targetPosition = targetPosition.displace(displacement);
 
             while(validPosition(targetPosition)){
 
@@ -508,7 +522,7 @@ public class Board {
                 // If a piece is in the way, or this piece cannot slide, break and try new direction
                 if(targetPiece != null || !piece.canSlide) break;
                 
-                targetPosition.displace(displacement);
+                targetPosition = targetPosition.displace(displacement);
             }
         }
 
@@ -524,38 +538,37 @@ public class Board {
         for(Square displacement: displacements){
             if(pinnedPieces.keySet().contains(king) && !pinnedPieces.get(king).contains(displacement)) continue;
             
-            Square target = king.getPosition();
-            target.displace(displacement);
+            int dx = displacement.col;
+            int dy = displacement.row;
 
-            if(validPosition(target)){
-                Piece targetPiece = getPiece(target);
-                Move potentialMove = new Move(king, targetPiece, king.getPosition(), target, MoveType.DEFAULT);
+            Square kingSquare = king.getPosition();
+            Square targetSquare = kingSquare.displace(displacement);
 
-                if((targetPiece == null || areEnemies(targetPiece, king)) && kingSafeAfterMove(potentialMove, checkKingSafety)){
+            if(validPosition(targetSquare)){
+
+                Piece targetPiece = getPiece(targetSquare);
+
+                Move potentialMove = new Move(king,targetPiece,kingSquare,targetSquare,MoveType.DEFAULT);
+
+                if((targetPiece==null || areEnemies(king,targetPiece)) && kingSafeAfterMove(potentialMove, checkKingSafety)){
                     kingMoves.add(potentialMove);
 
-                    target.displace(new Square(displacement.col,0));
-                    if(king.firstMove && validPosition(target)){
-                        targetPiece = getPiece(target);
-                        int dx = displacement.col;
-                        MoveType moveType = (dx == 1) ? MoveType.CASTLE_KING_SIDE: MoveType.CASTLE_QUEEN_SIDE;
-                        potentialMove = new Move(king,targetPiece,king.getPosition(),target,moveType);
-                        Piece rook = canRookCastle(king, dx);
-                        
-                        if((dx == 1 || dx == -1) && displacement.row == 0 && getPiece(target) == null && rook!=null){
-                            potentialMove.rookPreviousPosition = rook.getPosition();
-                            potentialMove.rookToCastle = rook;
-                            potentialMove.rookTargetPosition = new Square(potentialMove.targetPosition.col-dx,potentialMove.targetPosition.row);
+                    targetSquare = targetSquare.displace(new Square(dx,0));
+                    targetPiece = getPiece(targetSquare);
+                    if(king.firstMove && validPosition(targetSquare) && targetPiece == null){
+                        MoveType moveType = (dx==1) ? MoveType.CASTLE_KING_SIDE:MoveType.CASTLE_QUEEN_SIDE;
+                        potentialMove = new Move(king,null,kingSquare,targetSquare, moveType);
+
+                        if((dx==-1 || dx == 1) && dy == 0 && canRookCastle(king,dx)!=null && kingSafeAfterMove(potentialMove, checkKingSafety)){
                             kingMoves.add(potentialMove);
-                            
                         }
+
                     }
-                }
-
-
+                        
+                }   
             }
         }
-
+        
         return kingMoves;
 
     }
@@ -589,8 +602,8 @@ public class Board {
 
             Move potentialMove = new Move(pawn, targetPiece, prevPos,targetPosition,moveType);
 
-            if(dx==0 && targetPiece == null && kingSafeAfterMove(potentialMove, checkKingSafety)){
-                pawnMoves.add(potentialMove);
+            if(dx==0 && targetPiece == null){
+                if(kingSafeAfterMove(potentialMove, checkKingSafety)) pawnMoves.add(potentialMove);
 
                 Square newTargetPosition = new  Square(currCol,currRow+dy);
 
@@ -628,13 +641,9 @@ public class Board {
     public Boolean kingSafeAfterMove(Move move, Boolean checkKingSafety){
 
         if(!checkKingSafety) return true;
-
-        // If this piece's king is captured, return false
-        if(move.capturedPiece != null && move.capturedPiece.white != move.piece.white && move.capturedPiece.name == Name.KING) return false;
-    
+        
         Piece piece = move.piece;
         boolean kingSafeAfterMove = true;
-        HashSet<Square> spacesInCheck = new HashSet<>();
 
         Move simulatedMove = movePiece(move);
 
@@ -646,14 +655,18 @@ public class Board {
             HashSet<Move> enemyLegalMoves = legalMoves(enemy,false);
 
             for(Move enemyMove:enemyLegalMoves){
-                spacesInCheck.add(enemyMove.targetPosition);
-
-                if(spacesInCheck.contains(king)){
+                if(enemyMove.targetPosition.equals(king)){
                     kingSafeAfterMove = false;
                     break;
                 }
+                if(!kingSafeAfterMove) break;
+                
             }
+            if(!kingSafeAfterMove) break;
+
         }
+
+        
 
         undoMove(simulatedMove);
 
