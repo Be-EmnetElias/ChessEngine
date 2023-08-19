@@ -111,7 +111,10 @@ public class Board {
         switch (fenposition){
 
             case "castle_test":
-                fenposition = "r3k2r/8/8/8/8/8/8/R3K2R w KQkq - 0 0";
+                fenposition = "r3k2r/pppppppp/8/8/8/8/PPPPPPPP/R3K2R w KQkq - 0 0";
+                break;
+            case "castle_white_king_side":
+                fenposition = "4k3/8/8/8/8/8/8/4K2R w KQkq - 0 0";
                 break;
             case "start":
                 fenposition = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - random";
@@ -134,6 +137,9 @@ public class Board {
         String position = boardInformation[0];
         String turn = boardInformation[1];
         String castleRights = boardInformation[2];
+        boolean whiteKingCastle = (castleRights.indexOf('K') != -1) || (castleRights.indexOf('Q') != -1);
+        boolean blackKingCastle = (castleRights.indexOf('k') != -1) || (castleRights.indexOf('q') != -1);
+
         String enpassantSquare = boardInformation[3];
         String halfmoves = boardInformation[4];
 
@@ -147,68 +153,55 @@ public class Board {
         for(int i=0;i<position.length();i++){
             char c = position.charAt(i);
             Name name = null;
-            int image_index = -1;
             boolean white = true;
-
+            Piece current;
             switch(c){
                 case 'r':
                     name = Name.ROOK;
-                    image_index = 10;
                     white = false;
                     break;
                 case 'n':
                     name = Name.KNIGHT;
-                    image_index = 9;
                     white = false;
                     break;
                 case 'b':
                     name = Name.BISHOP;
-                    image_index = 8;
                     white = false;
                     break;
                 case 'q':
                     name = Name.QUEEN;
-                    image_index = 7;
                     white = false;
                     break;
                 case 'k':
                     name = Name.KING;
-                    image_index = 6;
                     white = false;
                     break;
                 case 'p':
                     name = Name.PAWNB;
-                    image_index = 11;
                     white = false;
                     break;
                 case 'R':
                     name = Name.ROOK;
-                    image_index = 4;
                     white = true;
                     break;
                 case 'N':
                     name = Name.KNIGHT;
-                    image_index = 3;
                     white = true;
                     break;
                 case 'B':
                     name = Name.BISHOP;
-                    image_index = 2;
                     white = true;
                     break;
                 case 'Q':
                     name = Name.QUEEN;
-                    image_index = 1;
                     white = true;
                     break;
                 case 'K':
                     name = Name.KING;
-                    image_index = 0;
                     white = true;
                     break;
                 case 'P':
                     name = Name.PAWNW;
-                    image_index = 5;
                     white = true;
                     break;
                 case '/':
@@ -222,8 +215,12 @@ public class Board {
                     break;
             }
 
-            // TODO: When making a new piece, its firstMove is auto set to true.
-            if (name != null) setPiece(new Piece(name,white,col,row),new Square(col,row));
+            if (name != null){
+                current = new Piece(name,white,col,row);
+                setPiece(current,new Square(col,row));
+                current.firstMove = (current.name == Name.PAWNW && row == 6) || (current.name == Name.PAWNB && row == 1) || (current.name == Name.KING && current.white && whiteKingCastle) || (current.name == Name.KING && !current.white && blackKingCastle);
+            }
+
             
 
             col = (col >= 8) ? 0:col+1;
@@ -244,10 +241,18 @@ public class Board {
             for(char c: castleRights.toCharArray()){
                 if (c == '-') continue;
 
-                if (c == 'K' && whiteRookKingSide != null) whiteRookKingSide.firstMove = true;
-                if (c == 'Q' && whiteRookQueenSide != null) whiteRookQueenSide.firstMove = true;
-                if (c == 'k' && blackRookKingSide != null) blackRookKingSide.firstMove = true;
-                if (c == 'q' && blackRookQueenSide != null) blackRookQueenSide.firstMove = true;
+                if (c == 'K' && whiteRookKingSide != null){
+                    whiteRookKingSide.firstMove = true;
+                }
+                if (c == 'Q' && whiteRookQueenSide != null){
+                    whiteRookQueenSide.firstMove = true;
+                }
+                if (c == 'k' && blackRookKingSide != null){
+                    blackRookKingSide.firstMove = true;
+                }
+                if (c == 'q' && blackRookQueenSide != null){
+                    blackRookQueenSide.firstMove = true;
+                } 
 
             }
         }
@@ -260,6 +265,7 @@ public class Board {
             if (enPassantPiece != null) enPassantPiece.enPassant = true;      
         }
 
+        //printBoard(null);
     }
 
     public HashMap<Piece, HashSet<Move>> getCurrentLegalMoves(){
@@ -269,6 +275,7 @@ public class Board {
             HashSet<Move> moves = legalMoves(piece, true);
             CURRENT_LEGAL_MOVES.put(piece, moves);
         }
+
 
         return CURRENT_LEGAL_MOVES;
 
@@ -295,17 +302,18 @@ public class Board {
 
     }
 
-    public void printCurrentMoves(){
-        HashMap<Piece, HashSet<Move>> moves = getCurrentLegalMoves();
-        for(Piece piece: moves.keySet()){
-            HashSet<Move> pieceMoves = moves.get(piece);
-            System.out.println(piece.name);
-            for(Move move: pieceMoves){
-                System.out.println("\t" + move);
-            }
-            System.out.println("=====================================");
-        }
-    }
+    //TODO:
+    // public void printCurrentMoves(){
+    //     HashMap<Piece, HashSet<Move>> moves = getCurrentLegalMoves();
+    //     for(Piece piece: moves.keySet()){
+    //         HashSet<Move> pieceMoves = moves.get(piece);
+    //         System.out.println(piece.name);
+    //         for(Move move: pieceMoves){
+    //             System.out.println("\t" + move);
+    //         }
+    //         System.out.println("=====================================");
+    //     }
+    // }
 
     /**
      * Checks whether this piece can move to this position. This function is called by the visuals to see
@@ -341,7 +349,7 @@ public class Board {
      * @return Returns this move with the updated castling, enpassant or promotion
      */
     public Move movePiece(Move move){
-
+        
         Move result = null;
 
         Piece piece = move.piece;
@@ -351,18 +359,24 @@ public class Board {
         MoveType moveType = move.moveType;
         Boolean enPassantSave = piece.enPassant;
 
+
         if ((moveType == MoveType.DEFAULT) || ( moveType == MoveType.CASTLE_KING_SIDE) || (moveType == MoveType.CASTLE_QUEEN_SIDE)){
-            if(targetPosition.col == -1 || targetPosition.row ==-1) System.out.println(move.piece.name + " , " + move.previousPosition + " " + move.targetPosition);
+            
+            //if(targetPosition.col == -1 || targetPosition.row ==-1) System.out.println(move.piece.name + " , " + move.previousPosition + " " + move.targetPosition);
             setPiece(piece,targetPosition);
             setPiece(null,previousPosition);
 
             piece.enPassant = (EnumSet.of(Name.PAWNW,Name.PAWNB).contains(piece.name) && piece.firstMove && Math.abs(targetPosition.row-previousPosition.row)==2);
             result = new Move(piece,capturedPiece, previousPosition, targetPosition, moveType);
+
         }
 
         if ((moveType == MoveType.CASTLE_KING_SIDE) || (moveType == MoveType.CASTLE_QUEEN_SIDE)){
+            //System.out.println(move);
+            
+
             Piece rook = move.rookToCastle;
-            previousPosition = rook.getPosition();
+            previousPosition = move.rookPreviousPosition;
             Square targetPositionRook = move.rookTargetPosition;
             capturedPiece = getPiece(targetPositionRook);
             setPiece(rook,targetPositionRook);
@@ -377,8 +391,7 @@ public class Board {
             setPiece(piece, targetPosition);
             setPiece(null, previousPosition);
 
-            piece.name = Name.QUEEN; //TODO: LET USER PICK
-            //piece.imgIndex = piece.white ? 1:7; //TODO: enable when visuals work OR have GUI read by color and name
+            piece.name = move.promotionName; //LET USER PICK
 
             piece.canSlide = true;
 
@@ -410,6 +423,10 @@ public class Board {
         //this.MOVE_HISTORY.put(this.MOVE_NUMBER, result);
         //this.MOVE_NUMBER += 1;
 
+        // if((move.moveType == MoveType.CASTLE_KING_SIDE) || (move.moveType == MoveType.CASTLE_QUEEN_SIDE)){  
+        //     printBoard(null);
+        // }
+
         return result;
     }
 
@@ -424,6 +441,8 @@ public class Board {
         if(piece.name != Name.PAWNW && piece.name != Name.PAWNB){
             piece.firstMove = move.firstMove;
         }
+
+        
 
         piece.enPassant = move.enPassant;
 
@@ -443,6 +462,8 @@ public class Board {
             }
 
             if(moveType == MoveType.CASTLE_KING_SIDE || moveType == MoveType.CASTLE_QUEEN_SIDE){
+                //System.out.println("UNDOING KING TO " + previousPosition + " UNDOING ROOK TO " + move.rookPreviousPosition);
+                
                 Piece rook = move.rookToCastle;
                 previousPosition = move.rookPreviousPosition;
                 targetPosition = move.rookTargetPosition;
@@ -478,6 +499,11 @@ public class Board {
             piece.name = (targetPosition.row == 0) ? Name.PAWNW : Name.PAWNB;
             piece.canSlide = false;
         }
+
+        // if(moveType == MoveType.CASTLE_KING_SIDE || moveType == MoveType.CASTLE_QUEEN_SIDE){  
+        //     System.out.println("=============UNDOING KING=================");
+        //     printBoard(null);
+        // }
     }
 
     public GameState updateGameStatus(){
@@ -534,7 +560,6 @@ public class Board {
 
         HashSet<Move> kingMoves = new HashSet<>();
         HashSet<Square> displacements = this.PSEUDO_LEGAL_MOVEMENT.get(king.name);
-
         for(Square displacement: displacements){
             if(pinnedPieces.keySet().contains(king) && !pinnedPieces.get(king).contains(displacement)) continue;
             
@@ -554,12 +579,17 @@ public class Board {
                     kingMoves.add(potentialMove);
 
                     targetSquare = targetSquare.displace(new Square(dx,0));
-                    targetPiece = getPiece(targetSquare);
-                    if(king.firstMove && validPosition(targetSquare) && targetPiece == null){
+
+                    if(king.firstMove && validPosition(targetSquare) && getPiece(targetSquare) == null && canRookCastle(king,dx)!=null){
                         MoveType moveType = (dx==1) ? MoveType.CASTLE_KING_SIDE:MoveType.CASTLE_QUEEN_SIDE;
                         potentialMove = new Move(king,null,kingSquare,targetSquare, moveType);
+                        Square[] castleInfo = canRookCastle(king,dx);
+                        potentialMove.rookToCastle = getPiece(castleInfo[0]);
+                        potentialMove.rookPreviousPosition = castleInfo[0];
+                        potentialMove.rookTargetPosition = castleInfo[1];
 
-                        if((dx==-1 || dx == 1) && dy == 0 && canRookCastle(king,dx)!=null && kingSafeAfterMove(potentialMove, checkKingSafety)){
+                        if((dx==-1 || dx == 1) && dy == 0  && kingSafeAfterMove(potentialMove, checkKingSafety)){
+                            
                             kingMoves.add(potentialMove);
                         }
 
@@ -603,7 +633,20 @@ public class Board {
             Move potentialMove = new Move(pawn, targetPiece, prevPos,targetPosition,moveType);
 
             if(dx==0 && targetPiece == null){
-                if(kingSafeAfterMove(potentialMove, checkKingSafety)) pawnMoves.add(potentialMove);
+                if(kingSafeAfterMove(potentialMove, checkKingSafety)){
+                    if(moveType == MoveType.PROMOTION){
+                        Move promotionQueen = new Move(pawn, targetPiece, prevPos,targetPosition,moveType,Name.QUEEN);
+                        Move promotionRook = new Move(pawn, targetPiece, prevPos,targetPosition,moveType,Name.ROOK);
+                        Move promotionBishop = new Move(pawn, targetPiece, prevPos,targetPosition,moveType,Name.BISHOP);
+                        Move promotionKnight = new Move(pawn, targetPiece, prevPos,targetPosition,moveType,Name.KNIGHT);
+                        pawnMoves.add(promotionQueen);
+                        pawnMoves.add(promotionRook);
+                        pawnMoves.add(promotionBishop);
+                        pawnMoves.add(promotionKnight);
+                    }else{
+                        pawnMoves.add(potentialMove);
+                    }
+                } 
 
                 Square newTargetPosition = new  Square(currCol,currRow+dy);
 
@@ -622,7 +665,18 @@ public class Board {
             if(dx!=0){
 
                 if(areEnemies(pawn,targetPiece) && kingSafeAfterMove(potentialMove, checkKingSafety)){
-                    pawnMoves.add(potentialMove);
+                    if(moveType == MoveType.PROMOTION){
+                        Move promotionQueen = new Move(pawn, targetPiece, prevPos,targetPosition,moveType,Name.QUEEN);
+                        Move promotionRook = new Move(pawn, targetPiece, prevPos,targetPosition,moveType,Name.ROOK);
+                        Move promotionBishop = new Move(pawn, targetPiece, prevPos,targetPosition,moveType,Name.BISHOP);
+                        Move promotionKnight = new Move(pawn, targetPiece, prevPos,targetPosition,moveType,Name.KNIGHT);
+                        pawnMoves.add(promotionQueen);
+                        pawnMoves.add(promotionRook);
+                        pawnMoves.add(promotionBishop);
+                        pawnMoves.add(promotionKnight);
+                    }else{
+                        pawnMoves.add(potentialMove);
+                    }
                 }
                 
                 Move enPassantMove = new Move(pawn,enPassantPiece,prevPos,targetPosition,MoveType.ENPASSANT);
@@ -713,12 +767,43 @@ public class Board {
         return pinnedPieces;
     }
 
-    public Piece canRookCastle(Piece king, int dx){
-        Piece rook = null;
-        if (king.white) rook = (dx==1) ? getPiece(new Square(7,7)): getPiece(new Square(0,7));
-        else rook = (dx == 1) ? getPiece(new Square(7,0)): getPiece(new Square(0,0));
+    public Square[] canRookCastle(Piece king, int dx){
+        Square[] result = null;
+        Square whiteKingSideSquare = new Square(7,7);
+        Square whiteKingSideTarget = new Square(5,7);
 
-        return rook;
+        Square whiteQueenSideSquare = new Square(0,7);
+        Square whiteQueenSideTarget = new Square(3,7);
+
+        Square blackKingSideSquare = new Square(7,0);
+        Square blackKingSideTarget = new Square(5,0);
+
+        Square blackQueenSideSquare = new Square(0,0);
+        Square blackQueenSideTarget = new Square(3,0);
+
+        Piece whiteKingSideRook = getPiece(whiteKingSideSquare);
+        Piece whiteQueenSideRook = getPiece(whiteQueenSideSquare);
+
+        Piece blackKingSideRook = getPiece(blackKingSideSquare);
+        Piece blackQueenSideRook = getPiece(blackQueenSideSquare);
+
+        if(king.white){
+            if(dx==1 && whiteKingSideRook != null){
+                result = new Square[]{whiteKingSideSquare,whiteKingSideTarget };
+            }
+            if(dx==-1 && whiteQueenSideRook != null){
+                result = new Square[]{whiteQueenSideSquare, whiteQueenSideTarget };
+            }
+        }else{
+            if(dx==1 && blackKingSideRook != null){
+                result = new Square[]{blackKingSideSquare, blackKingSideTarget};
+            }
+            if(dx==-1 && blackQueenSideRook != null){
+                result = new Square[]{blackQueenSideSquare, blackQueenSideTarget };
+            }
+        }
+
+        return result;
 
     }
 

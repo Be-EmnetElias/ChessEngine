@@ -1,6 +1,4 @@
 '''
-Move: h2h4 - Output1: 218848 | Output2: 218829 --run depth 4 on rnbqkbnr/pppppppp/8/8/7P/8/PPPPPPP1/RNBQKBNR b Qkq e2 1-0
-Move: g7g5 - Output1: 11664 | Output2: 11645 -- run depth 3 on rnbqkbnr/pppppp1p/8/6p1/7P/8/PPPPPPP1/RNBQKBNR w Qkq d3 1-1
 
 
 '''
@@ -46,49 +44,37 @@ def compare_outputs(output1: str, output2: str) -> None:
 
 
 output1 = """
-f7f6:9366
-f7f5:9887
-h7h5:9102
-h7h6:9350
-e7e5:14634
-e7e6:14608
-g7g5:11664
-g7g6:10390
-c7c5:10796
-c7c6:10275
-b8c6:10809
-b8a6:9842
-a7a6:9366
-a7a5:10335
-g8f6:10783
-g8h6:9863
-b7b6:10352
-b7b5:10339
-d7d6:13281
-d7d5:13806
+a5a6:3653
+a5a4:3394
+b4f4:606
+b4b1:4199
+b4b2:3328
+b4c4:3797
+b4b3:3658
+b4d4:3622
+b4e4:3391
+b4a4:3019
+e2e3:3107
+e2e4:2815
+g2g3:1014
+g2g4:3770
 """
 
 output2 = """
-a7a6: 9366
-b7b6: 10352
-c7c6: 10275
-d7d6: 13281
-e7e6: 14608
-f7f6: 9366
-g7g6: 10390
-h7h6: 9350
-a7a5: 10335
-b7b5: 10339
-c7c5: 10796
-d7d5: 13806
-e7e5: 14634
-f7f5: 9887
-g7g5: 11645
-h7h5: 9102
-b8a6: 9842
-b8c6: 10809
-g8f6: 10783
-g8h6: 9863
+e2e3: 3107
+g2g3: 1014
+a5a6: 3653
+e2e4: 2748
+g2g4: 3702
+b4b1: 4199
+b4b2: 3328
+b4b3: 3658
+b4a4: 3019
+b4c4: 3797
+b4d4: 3622
+b4e4: 3391
+b4f4: 606
+a5a4: 3394
 """
 
 compare_outputs(output1, output2)
