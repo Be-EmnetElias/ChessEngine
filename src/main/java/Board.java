@@ -316,18 +316,18 @@ public class Board {
     // }
 
     /**
-     * Checks whether this piece can move to this position. This function is called by the visuals to see
+     * Checks whether this piece can move to this position and returns that valid move. This function is called by the visuals to see
      * if a user-selected piece can move to a user-selected position
      * @param piece
      * @param position
-     * @return 
+     * @return this user-selected move as a legal move
      */
     public Move userValidMove(Piece piece, Square position){
 
         Move potentialMove = null;
 
         HashSet<Move> legalMovesForPiece = getCurrentLegalMoves().get(piece);
-        
+        if(legalMovesForPiece == null) return null;
         for(Move move: legalMovesForPiece){
             if(position.equals(move.targetPosition)){
                 potentialMove = new Move(move.piece, move.capturedPiece, move.previousPosition, move.targetPosition, move.moveType);
@@ -351,7 +351,7 @@ public class Board {
     public Move movePiece(Move move){
         
         Move result = null;
-
+        System.out.println("MOVE To RESULT " + move);
         Piece piece = move.piece;
         Piece capturedPiece = move.capturedPiece;
         Square previousPosition = move.previousPosition;
