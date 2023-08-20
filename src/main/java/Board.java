@@ -331,7 +331,7 @@ public class Board {
         for(Move move: legalMovesForPiece){
             if(position.equals(move.targetPosition)){
                 potentialMove = new Move(move.piece, move.capturedPiece, move.previousPosition, move.targetPosition, move.moveType);
-                if (areEnemies(piece, move.capturedPiece)) potentialMove.moveType = MoveType.CAPTURE;
+                //if (areEnemies(piece, move.capturedPiece)) potentialMove.moveType = MoveType.CAPTURE;
 
                 return potentialMove;
             }
@@ -369,6 +369,8 @@ public class Board {
             piece.enPassant = (EnumSet.of(Name.PAWNW,Name.PAWNB).contains(piece.name) && piece.firstMove && Math.abs(targetPosition.row-previousPosition.row)==2);
             result = new Move(piece,capturedPiece, previousPosition, targetPosition, moveType);
 
+        }else{
+            System.out.println("MOVETYPE" + moveType.toString());
         }
 
         if ((moveType == MoveType.CASTLE_KING_SIDE) || (moveType == MoveType.CASTLE_QUEEN_SIDE)){
