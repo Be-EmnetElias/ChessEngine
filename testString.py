@@ -44,37 +44,114 @@ def compare_outputs(output1: str, output2: str) -> None:
 
 
 output1 = """
-a5a6:3653
-a5a4:3394
-b4f4:606
-b4b1:4199
-b4b2:3328
-b4c4:3797
-b4b3:3658
-b4d4:3622
-b4e4:3391
-b4a4:3019
-e2e3:3107
-e2e4:2815
-g2g3:1014
-g2g4:3770
+a6b5:1
+a6b7:1
+a6c4:1
+a6c8:1
+a6d3:1
+a6e2:1
+a8b8:1
+a8c8:1
+a8d8:1
+b4b3:1
+b4c3:1
+b6a4:1
+b6c4:1
+b6c8:1
+b6d5:1
+c7c5:1
+c7c6:1
+d7d6:1
+e6d5:1
+e7c5:1
+e7d6:1
+e7d8:1
+e7f8:1
+e8c8:1
+e8d8:1
+e8f8:1
+e8g8:1
+f6d5:1
+f6e4:1
+f6g4:1
+f6g8:1
+f6h5:1
+f6h7:1
+g2f1b:1
+g2f1n:1
+g2f1q:1
+g2f1r:1
+g2g1b:1
+g2g1n:1
+g2g1q:1
+g2g1r:1
+g6g5:1
+g7f8:1
+g7h6:1
+h8f8:1
+h8g8:1
+h8h2:1
+h8h3:1
+h8h4:1
+h8h5:1
+h8h6:1
+h8h7:1
 """
 
 output2 = """
-e2e3: 3107
-g2g3: 1014
-a5a6: 3653
-e2e4: 2748
-g2g4: 3702
-b4b1: 4199
-b4b2: 3328
-b4b3: 3658
-b4a4: 3019
-b4c4: 3797
-b4d4: 3622
-b4e4: 3391
-b4f4: 606
-a5a4: 3394
+b4b3: 1
+g6g5: 1
+c7c6: 1
+d7d6: 1
+c7c5: 1
+g2f1q: 1
+g2f1r: 1
+g2f1b: 1
+g2f1n: 1
+g2g1q: 1
+g2g1r: 1
+g2g1b: 1
+g2g1n: 1
+e6d5: 1
+b4c3: 1
+b6a4: 1
+b6c4: 1
+b6d5: 1
+b6c8: 1
+f6e4: 1
+f6g4: 1
+f6d5: 1
+f6h5: 1
+f6h7: 1
+f6g8: 1
+a6e2: 1
+a6d3: 1
+a6c4: 1
+a6b5: 1
+a6b7: 1
+a6c8: 1
+g7h6: 1
+g7f8: 1
+a8b8: 1
+a8c8: 1
+a8d8: 1
+h8h2: 1
+h8h3: 1
+h8h4: 1
+h8h5: 1
+h8h6: 1
+h8h7: 1
+h8f8: 1
+h8g8: 1
+e7c5: 1
+e7d6: 1
+e7d8: 1
+e7f8: 1
+e8d8: 1
+e8f8: 1
+e8g8: 1
+e8c8: 1
+
 """
 
 compare_outputs(output1, output2)

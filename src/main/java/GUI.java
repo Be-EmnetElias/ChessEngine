@@ -9,6 +9,7 @@ import javax.imageio.ImageIO;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.HashSet;
 
 public class GUI {
 
@@ -19,8 +20,13 @@ public class GUI {
             frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
             frame.setResizable(false); 
 
-            ChessPanel chessPanel = new ChessPanel();
-            frame.add(chessPanel);
+            ChessPanel chessPanel;
+            try {
+                chessPanel = new ChessPanel();
+                frame.add(chessPanel);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
             frame.setVisible(true);
         });
     }
@@ -28,12 +34,12 @@ public class GUI {
 
 class ChessPanel extends JPanel {
 
-    private BufferedImage boardImage;
+    private Image boardImage;
     private BufferedImage allPieces;
     private HashMap<Character,Image> pieceImages = new HashMap<>();
 
-    
     private Piece clickedPiece = null;
+    private HashSet<Move> moveHints = null;
 
     private static final String BG_PATH = "src/main/resources/assets/imgs/bg_brown.png";
     private static final String PIECES_PATH = "src/main/resources/assets/imgs/pieces.png";
@@ -43,15 +49,13 @@ class ChessPanel extends JPanel {
     private int dragx = 0;
     private int dragy = 0;
 
-    public ChessPanel() {
-        try {
-            boardImage = ImageIO.read(new File(BG_PATH));
-            allPieces = ImageIO.read(new File(PIECES_PATH));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+    public ChessPanel() throws IOException {
 
-        board.setBoard();
+        boardImage = ImageIO.read(new File(BG_PATH));
+        allPieces = ImageIO.read(new File(PIECES_PATH));
+        boardImage = boardImage.getScaledInstance(800, 800, BufferedImage.SCALE_SMOOTH);
+        
+        board.setBoard("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
 
         // Slice the allPieces image into individual piece images
         char[] pieceLetters = new char[]{'K','Q','B','N','R','P','k','q','b','n','r','p'};
@@ -70,7 +74,8 @@ class ChessPanel extends JPanel {
             public void mousePressed(MouseEvent e) {
                 // Handle mouse pressed logic
                 Square pressedSquare = new Square(e.getX()/100,e.getY()/100);
-                clickedPiece = board.getPiece(pressedSquare); 
+                clickedPiece = board.getPiece(pressedSquare);
+                moveHints = board.legalMoves(clickedPiece, true);
             }
 
             @Override
@@ -81,7 +86,7 @@ class ChessPanel extends JPanel {
                     if(userMove != null){
                         board.movePiece(userMove);
                     }
-
+                    moveHints = null;
                     clickedPiece = null;
                 }
                 repaint();
@@ -106,8 +111,16 @@ class ChessPanel extends JPanel {
         super.paintComponent(g);
 
         // Draw the board
-        g.drawImage(boardImage.getScaledInstance(800, 800, BufferedImage.SCALE_SMOOTH), 0, 0, 800, 800, null);
+        g.drawImage(boardImage, 0, 0, 800, 800, null);
 
+        // Draw move hints
+        if(moveHints != null){
+            for(Move move: moveHints){
+                Square hint = move.targetPosition;
+                g.setColor(Color.RED);
+                g.fillRect(hint.col*100,hint.row*100, 100,100);
+            }
+        }
         // Draw the pieces
         /* 
         //int tileSize = getWidth() / 8;
@@ -130,15 +143,13 @@ class ChessPanel extends JPanel {
                 if(current != null && current != clickedPiece){
                     g.drawImage(pieceImages.get(current.getLetter().charAt(0)),col*100,row*100,null);
                 }
-                if(clickedPiece != null && current == clickedPiece){
-                    g.drawImage(pieceImages.get(clickedPiece.getLetter().charAt(0)), dragx,dragy,null);
-                }
             }
         }
+        if(clickedPiece != null) g.drawImage(pieceImages.get(clickedPiece.getLetter().charAt(0)), dragx,dragy,null);
     
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
         JFrame frame = new JFrame("Chess Board");
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         ChessPanel panel = new ChessPanel();

@@ -1,22 +1,21 @@
 package tests;
 
-import java.util.HashMap;
-import java.util.HashSet;
-
+import java.util.*;
 import main.java.Board;
-import main.java.util.Move;
-import main.java.util.Piece;
+import main.java.util.*;
 
 public class test {
     
     public static Board board;
-    
+    public static TreeSet<String> NODES;
     public static void main(String[] args){
         board = new Board();
-        board.setBoard("8/2p5/3p4/KP5r/1R2Pp1k/8/6P1/8 b - e3 0 1");
+        board.setBoard("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N1BQ2/PPP1BPpP/R3KR2 b Qkq - 1 2");
 
+
+        NODES = new TreeSet<>();
         //board.printCurrentMoves();
-        nodeCount(3);
+        nodeCount(1);
         
     }
 
@@ -38,7 +37,7 @@ public class test {
                 Move currentMove = board.movePiece(move);
                 int newNodes = nodeCount(start,depth-1);
                 if(depth==start){
-                    System.out.println(move.getStr() + ":" + newNodes);
+                    NODES.add(move.getStr() + ":" + newNodes);
                 }
                 nodes += newNodes;
                 
@@ -46,6 +45,9 @@ public class test {
             }
         }
         if(depth==start){
+            for(String move: NODES){
+                System.out.println(move);
+            }
             System.out.println("NODES: " + nodes);
         }
         return nodes;
