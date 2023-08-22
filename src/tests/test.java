@@ -10,12 +10,12 @@ public class test {
     public static TreeSet<String> NODES;
     public static void main(String[] args){
         board = new Board();
-        board.setBoard("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N1BQ2/PPP1BPpP/R3KR2 b Qkq - 1 2");
-
+        
+        board.setBoard("r3k2r/p1ppqpb1/bn2pQp1/3PN3/1p2P3/2N5/PPPBBPpP/R3K2R w KQkq - 0 2");
 
         NODES = new TreeSet<>();
-        //board.printCurrentMoves();
-        nodeCount(1);
+
+        nodeCount(2);
         
     }
 

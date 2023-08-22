@@ -84,7 +84,14 @@ class ChessPanel extends JPanel {
                 if(clickedPiece != null){
                     Move userMove = board.userValidMove(clickedPiece, new Square(e.getX()/100, e.getY()/100));
                     if(userMove != null){
-                        board.movePiece(userMove);
+                        if(userMove.promotionName != null && userMove.promotionName != Name.KNIGHT) {
+                            Move userMove2 = userMove;
+                            userMove2.promotionName = Name.KNIGHT;
+                            board.movePiece(userMove2);
+
+                        }else{
+                            board.movePiece(userMove);
+                        }
                     }
                     moveHints = null;
                     clickedPiece = null;

@@ -302,18 +302,17 @@ public class Board {
 
     }
 
-    //TODO:
-    // public void printCurrentMoves(){
-    //     HashMap<Piece, HashSet<Move>> moves = getCurrentLegalMoves();
-    //     for(Piece piece: moves.keySet()){
-    //         HashSet<Move> pieceMoves = moves.get(piece);
-    //         System.out.println(piece.name);
-    //         for(Move move: pieceMoves){
-    //             System.out.println("\t" + move);
-    //         }
-    //         System.out.println("=====================================");
-    //     }
-    // }
+    public void printCurrentMoves(){
+        HashMap<Piece, HashSet<Move>> moves = getCurrentLegalMoves();
+        for(Piece piece: moves.keySet()){
+            HashSet<Move> pieceMoves = moves.get(piece);
+            System.out.println(piece.name);
+            for(Move move: pieceMoves){
+                System.out.println("\t" + move);
+            }
+            System.out.println("=====================================");
+        }
+    }
 
     /**
      * Checks whether this piece can move to this position and returns that valid move. This function is called by the visuals to see
@@ -329,10 +328,11 @@ public class Board {
         }
 
         HashSet<Move> legalMovesForPiece = getCurrentLegalMoves().get(piece);
+
         if(legalMovesForPiece == null) return null;
         for(Move move: legalMovesForPiece){
             if(position.equals(move.targetPosition)){
-                System.out.println("MOVETYPE " + move.moveType);
+
                 return move;
             }
             
@@ -396,7 +396,7 @@ public class Board {
 
             piece.name = move.promotionName; //LET USER PICK
 
-            piece.canSlide = true;
+            if(piece.name != Name.KNIGHT) piece.canSlide = true;
 
             result = new Move(piece, capturedPiece, previousPosition, targetPosition, moveType);
         }
@@ -495,16 +495,9 @@ public class Board {
             piece.name = (targetPosition.row == 0) ? Name.PAWNW : Name.PAWNB;
             piece.canSlide = false;
         }
-
-        // if(moveType == MoveType.CASTLE_KING_SIDE || moveType == MoveType.CASTLE_QUEEN_SIDE){  
-        //     System.out.println("=============UNDOING KING=================");
-        //     printBoard(null);
-        // }
     }
 
     public GameState updateGameStatus(){
-
-
 
         return GameState.ACTIVE;
 
@@ -565,13 +558,16 @@ public class Board {
             Square kingSquare = king.getPosition();
             Square targetSquare = kingSquare.displace(displacement);
 
+
             if(validPosition(targetSquare)){
+                //if(checkKingSafety) System.out.print("\nLOOKING AT " + targetSquare + " IS VALID? " + validPosition(targetSquare));
 
                 Piece targetPiece = getPiece(targetSquare);
 
                 Move potentialMove = new Move(king,targetPiece,kingSquare,targetSquare,MoveType.DEFAULT);
 
                 if((targetPiece==null || areEnemies(king,targetPiece)) && kingSafeAfterMove(potentialMove, checkKingSafety)){
+                    //if(checkKingSafety) System.out.print("THIS MOVE IS ADDED");
                     kingMoves.add(potentialMove);
 
                     targetSquare = targetSquare.displace(new Square(dx,0));
@@ -631,6 +627,7 @@ public class Board {
 
             if(dx==0 && targetPiece == null){
                 if(kingSafeAfterMove(potentialMove, checkKingSafety)){
+
                     if(moveType == MoveType.PROMOTION){
                         Move promotionQueen = new Move(pawn, targetPiece, prevPos,targetPosition,moveType,Name.QUEEN);
                         Move promotionRook = new Move(pawn, targetPiece, prevPos,targetPosition,moveType,Name.ROOK);
@@ -643,6 +640,7 @@ public class Board {
                     }else{
                         pawnMoves.add(potentialMove);
                     }
+
                 } 
 
                 Square newTargetPosition = new  Square(currCol,currRow+dy);
@@ -658,10 +656,9 @@ public class Board {
                 }
             }
 
-
             if(dx!=0){
+                if(targetPiece != null && areEnemies(pawn,targetPiece) && kingSafeAfterMove(potentialMove, checkKingSafety)){
 
-                if(areEnemies(pawn,targetPiece) && kingSafeAfterMove(potentialMove, checkKingSafety)){
                     if(moveType == MoveType.PROMOTION){
                         Move promotionQueen = new Move(pawn, targetPiece, prevPos,targetPosition,moveType,Name.QUEEN);
                         Move promotionRook = new Move(pawn, targetPiece, prevPos,targetPosition,moveType,Name.ROOK);
@@ -674,13 +671,19 @@ public class Board {
                     }else{
                         pawnMoves.add(potentialMove);
                     }
+
                 }
                 
                 Move enPassantMove = new Move(pawn,enPassantPiece,prevPos,targetPosition,MoveType.ENPASSANT);
 
                 if(targetPiece==null && areEnemies(enPassantPiece,pawn) && enPassantPiece != null && enPassantPiece.enPassant && kingSafeAfterMove(enPassantMove, checkKingSafety)){
+                    if(checkKingSafety && currRow > 6 && !pawn.white){
+                        System.out.println("ENPASSANT");
+                        System.out.println("ENPASSANT PIECE: " + enPassantPiece.name + enPassantPiece.getPosition() );
+                    }
                     pawnMoves.add(enPassantMove);
                 }
+
             }
         
         }
