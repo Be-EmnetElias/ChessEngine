@@ -11,11 +11,14 @@ public class test {
     public static void main(String[] args){
         board = new Board();
         
-        board.setBoard("r3k2r/p1ppqpb1/bn2pQp1/3PN3/1p2P3/2N5/PPPBBPpP/R3K2R w KQkq - 0 2");
+        board.setBoard("rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8 ");
 
         NODES = new TreeSet<>();
 
-        nodeCount(2);
+        /*
+         *
+         */
+        nodeCount(5);
         
     }
 
@@ -24,7 +27,6 @@ public class test {
     }
     
     public static int nodeCount(int start, int depth){
-        // 20,400,8902,197281,4865609,119060324,3195901860,84998978956,2439530234167,69352859712417
         if(depth==0) return 1;
 
         int nodes = 0;
@@ -34,7 +36,7 @@ public class test {
         for(Piece piece: moves.keySet()){
             HashSet<Move> pieceMoves = moves.get(piece);
             for(Move move: pieceMoves){
-                Move currentMove = board.movePiece(move);
+                Move currentMove = board.movePiece(move, true);
                 int newNodes = nodeCount(start,depth-1);
                 if(depth==start){
                     NODES.add(move.getStr() + ":" + newNodes);

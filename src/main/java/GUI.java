@@ -75,7 +75,12 @@ class ChessPanel extends JPanel {
                 // Handle mouse pressed logic
                 Square pressedSquare = new Square(e.getX()/100,e.getY()/100);
                 clickedPiece = board.getPiece(pressedSquare);
-                moveHints = board.legalMoves(clickedPiece, true);
+                if(clickedPiece != null ){
+                    moveHints = board.legalMoves(clickedPiece, true);
+                    System.out.print("ENPASSANT FOR BOARD: ");
+                    if(board.ENPASSANT_PIECE != null) System.out.println(board.ENPASSANT_PIECE.name + " " + board.ENPASSANT_PIECE.getPosition());
+                    else System.out.println("NONE");
+                }
             }
 
             @Override
@@ -87,10 +92,10 @@ class ChessPanel extends JPanel {
                         if(userMove.promotionName != null && userMove.promotionName != Name.KNIGHT) {
                             Move userMove2 = userMove;
                             userMove2.promotionName = Name.KNIGHT;
-                            board.movePiece(userMove2);
+                            board.movePiece(userMove2, false);
 
                         }else{
-                            board.movePiece(userMove);
+                            board.movePiece(userMove, false);
                         }
                     }
                     moveHints = null;

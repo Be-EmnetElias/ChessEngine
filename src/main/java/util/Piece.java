@@ -7,7 +7,6 @@ public class Piece {
     public int col;
     public int row;
     public boolean firstMove;
-    public boolean enPassant;
     public boolean canSlide;
 
     
@@ -18,7 +17,6 @@ public class Piece {
         this.row = row;
 
         this.firstMove = true;
-        this.enPassant = false;
         this.canSlide = !(name == Name.KING || name == Name.PAWNW || name == Name.PAWNB || name == Name.KNIGHT);
     }
 

@@ -37,6 +37,11 @@ public class Board {
     public Boolean WHITE_TURN;
 
     /**
+     * The current piece on the board that can be captured by enpassant
+     */
+    public Piece ENPASSANT_PIECE;
+
+    /**
      * An integer that represents the orientation of the board. 1 represents the normal orientation and -1 represents the flipped orientation.
      */
     public int BOARD_ORIENTATION;
@@ -126,7 +131,7 @@ public class Board {
                 fenposition = "2k5/8/8/8/4N3/8/8/2K5 w - - 0 59";
                 break;
             case "pawn_test":
-                fenposition = "2k5/1P6/8/5pP1/8/3p4/4P3/2K5 w - f5 0 59";
+                fenposition = "3k4/1P6/8/5pP1/8/3p4/4P3/2K5 w - f5 0 59";
                 break;
             default:
                 break;
@@ -261,8 +266,8 @@ public class Board {
             // Square conversion: ASCII code - 97
             row = 8 - Integer.parseInt(enpassantSquare.charAt(1)+"");
             col = enpassantSquare.charAt(0) - 97;
-            Piece enPassantPiece = getPiece(new Square(col, row));
-            if (enPassantPiece != null) enPassantPiece.enPassant = true;      
+            ENPASSANT_PIECE = getPiece(new Square(col, row));
+               
         }
 
         //printBoard(null);
@@ -342,14 +347,7 @@ public class Board {
 
     }
 
-    /**
-     * Applies this move to the board. Assumes that this move is already legal
-     * @param piece
-     * @param move
-     * @param simulation
-     * @return Returns this move with the updated castling, enpassant or promotion
-     */
-    public Move movePiece(Move move){
+    public Move movePiece(Move move, boolean simulation){
         
         Move result = null;
         Piece piece = move.piece;
@@ -358,20 +356,10 @@ public class Board {
         Square targetPosition = move.targetPosition;
         MoveType moveType = move.moveType;
 
-        // for(Piece p: getPieces(true)){
-        //     p.enPassant = false;
-        // }
-        // for(Piece p: getPieces(false)){
-        //     p.enPassant = false;
-        // }
-
-        if ((moveType == MoveType.DEFAULT) || ( moveType == MoveType.CASTLE_KING_SIDE) || (moveType == MoveType.CASTLE_QUEEN_SIDE)){
+        if ((moveType == MoveType.DEFAULT) || (moveType == MoveType.CASTLE_KING_SIDE) || (moveType == MoveType.CASTLE_QUEEN_SIDE)){
             
-            //if(targetPosition.col == -1 || targetPosition.row ==-1) System.out.println(move.piece.name + " , " + move.previousPosition + " " + move.targetPosition);
             setPiece(piece,targetPosition);
             setPiece(null,previousPosition);
-
-            piece.enPassant = (EnumSet.of(Name.PAWNW,Name.PAWNB).contains(piece.name) && piece.firstMove && Math.abs(targetPosition.row-previousPosition.row)==2);
             result = new Move(piece,capturedPiece, previousPosition, targetPosition, moveType);
 
         }
@@ -415,18 +403,19 @@ public class Board {
         //Information to save
         result.firstMove = piece.firstMove;
         result.whiteTurn = this.WHITE_TURN;
+        result.enPassantPiece = this.ENPASSANT_PIECE;
 
         //Information to update
+        this.ENPASSANT_PIECE = (((piece.name == Name.PAWNW && targetPosition.row ==4) || (piece.name == Name.PAWNB && targetPosition.row == 3)) && piece.firstMove) ? piece:null;
         this.WHITE_TURN = !this.WHITE_TURN;
         piece.firstMove = false;
-        // this.updateCurrentLegalMoves();
-        // this.updateGameStatus();
-        //this.MOVE_HISTORY.put(this.MOVE_NUMBER, result);
-        //this.MOVE_NUMBER += 1;
 
-        // if((move.moveType == MoveType.CASTLE_KING_SIDE) || (move.moveType == MoveType.CASTLE_QUEEN_SIDE)){  
-        //     printBoard(null);
-        // }
+        if(!simulation){
+        this.updateGameStatus();
+        // this.MOVE_HISTORY.put(this.MOVE_NUMBER, result);
+        // this.MOVE_NUMBER += 1;
+        }
+        
 
         return result;
     }
@@ -441,6 +430,7 @@ public class Board {
         if(piece.name != Name.PAWNW && piece.name != Name.PAWNB){
             piece.firstMove = move.firstMove;
         }
+        this.ENPASSANT_PIECE = move.enPassantPiece;
 
         if(moveType == MoveType.DEFAULT || moveType == MoveType.CASTLE_KING_SIDE || moveType == MoveType.CASTLE_QUEEN_SIDE){
             setPiece(piece, previousPosition);
@@ -572,7 +562,7 @@ public class Board {
 
                     targetSquare = targetSquare.displace(new Square(dx,0));
 
-                    if(king.firstMove && validPosition(targetSquare) && getPiece(targetSquare) == null && canRookCastle(king,dx, checkKingSafety)!=null){
+                    if(targetPiece == null && king.firstMove && validPosition(targetSquare) && getPiece(targetSquare) == null && canRookCastle(king,dx, checkKingSafety)!=null){
                         MoveType moveType = (dx==1) ? MoveType.CASTLE_KING_SIDE:MoveType.CASTLE_QUEEN_SIDE;
                         potentialMove = new Move(king,null,kingSquare,targetSquare, moveType);
                         Square[] castleInfo = canRookCastle(king,dx, checkKingSafety);
@@ -676,12 +666,9 @@ public class Board {
                 
                 Move enPassantMove = new Move(pawn,enPassantPiece,prevPos,targetPosition,MoveType.ENPASSANT);
 
-                if(targetPiece==null && areEnemies(enPassantPiece,pawn) && enPassantPiece != null && enPassantPiece.enPassant && kingSafeAfterMove(enPassantMove, checkKingSafety)){
-                    if(checkKingSafety && currRow > 6 && !pawn.white){
-                        System.out.println("ENPASSANT");
-                        System.out.println("ENPASSANT PIECE: " + enPassantPiece.name + enPassantPiece.getPosition() );
-                    }
+                if(targetPiece==null && areEnemies(enPassantPiece,pawn) && enPassantPiece == ENPASSANT_PIECE && kingSafeAfterMove(enPassantMove, checkKingSafety)){
                     pawnMoves.add(enPassantMove);
+
                 }
 
             }
@@ -700,7 +687,7 @@ public class Board {
         Piece piece = move.piece;
         boolean kingSafeAfterMove = true;
 
-        Move simulatedMove = movePiece(move);
+        Move simulatedMove = movePiece(move, true);
 
         // Check if king is in the attacking squares of enemy pieces
         Piece king = getKing(piece.white);
@@ -788,11 +775,11 @@ public class Board {
         Square blackQueenSideSquare = new Square(0,0);
         Square blackQueenSideTarget = new Square(3,0);
 
-        Piece whiteKingSideRook = getPiece(whiteKingSideSquare);
-        Piece whiteQueenSideRook = getPiece(whiteQueenSideSquare);
+        Piece whiteKingSideRook = (getPiece(whiteKingSideSquare) != null && getPiece(whiteKingSideSquare).name == Name.ROOK && getPiece(whiteKingSideSquare).firstMove) ? getPiece(whiteKingSideSquare):null;
+        Piece whiteQueenSideRook = (getPiece(whiteQueenSideSquare) != null && getPiece(whiteQueenSideSquare).name == Name.ROOK&& getPiece(whiteQueenSideSquare).firstMove) ? getPiece(whiteQueenSideSquare):null;
 
-        Piece blackKingSideRook = getPiece(blackKingSideSquare);
-        Piece blackQueenSideRook = getPiece(blackQueenSideSquare);
+        Piece blackKingSideRook = (getPiece(blackKingSideSquare) != null && getPiece(blackKingSideSquare).name == Name.ROOK && getPiece(blackKingSideSquare).firstMove) ? getPiece(blackKingSideSquare):null;
+        Piece blackQueenSideRook = (getPiece(blackQueenSideSquare) != null && getPiece(blackQueenSideSquare).name == Name.ROOK && getPiece(blackQueenSideSquare).firstMove) ? getPiece(blackQueenSideSquare):null;
 
         if(king.white){
             if(dx==1 && whiteKingSideRook != null && getPiece(new Square(5,7)) == null){
