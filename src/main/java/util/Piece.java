@@ -8,6 +8,7 @@ public class Piece {
     public int row;
     public boolean firstMove;
     public boolean canSlide;
+    public boolean kingCastled;
 
     
     public Piece(Name name, boolean isWhite, int col, int row) {
@@ -18,6 +19,7 @@ public class Piece {
 
         this.firstMove = true;
         this.canSlide = !(name == Name.KING || name == Name.PAWNW || name == Name.PAWNB || name == Name.KNIGHT);
+        kingCastled = false;
     }
 
     public Square getPosition() {

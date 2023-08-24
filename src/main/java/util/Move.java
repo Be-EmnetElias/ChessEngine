@@ -17,6 +17,7 @@ public class Move {
 
     public boolean whiteTurn;
     public boolean firstMove;
+
     public Piece enPassantPiece;
     public Square enPassantPosition;
     public boolean enPassant;

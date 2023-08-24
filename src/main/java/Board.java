@@ -2,6 +2,7 @@ package main.java;
 import java.util.*;
 
 import main.java.util.*;
+//TODO: FASTER MOVE GENERATION -> https://peterellisjones.com/posts/generating-legal-chess-moves-efficiently/
 
 public class Board {
 
@@ -47,6 +48,16 @@ public class Board {
     public int BOARD_ORIENTATION;
 
     /**
+     * A map containing the current legal moves for the current position. Maps pieces to a set of its possible moves
+     */
+    public HashMap<Piece, HashSet<Move>> CURRENT_LEGAL_MOVES;
+
+    /**
+     * A static board evaluator. Calculates the best move for a given position
+     */
+    public BoardEvaluator HIVE;
+
+    /**
      * Constructor
      */
     public Board(){
@@ -55,6 +66,8 @@ public class Board {
         initPSEUDO_LEGAL_MOVEMENT();
 
         this.MOVE_HISTORY = new HashMap<>();
+
+        this.HIVE = new BoardEvaluator(this, false);
 
     }
 
@@ -125,7 +138,7 @@ public class Board {
                 fenposition = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - random";
                 break;
             case "random":
-                fenposition = "r3k2r/ppqbpp1p/n1pp2pb/8/8/2PP1NP1/PPQ1PPBP/2KR3R b kq - random";
+                fenposition = "r3k2r/ppqbpp1p/n1pp2pb/8/8/2PP1NP1/PPQ1PPBP/2KR3R w kq - random";
                 break;
             case "knight_test":
                 fenposition = "2k5/8/8/8/4N3/8/8/2K5 w - - 0 59";
@@ -270,7 +283,8 @@ public class Board {
                
         }
 
-        //printBoard(null);
+        this.CURRENT_LEGAL_MOVES = getCurrentLegalMoves();
+        this.GAME_STATE = this.getGameStatus(this.CURRENT_LEGAL_MOVES);
     }
 
     public HashMap<Piece, HashSet<Move>> getCurrentLegalMoves(){
@@ -332,7 +346,7 @@ public class Board {
             return null;
         }
 
-        HashSet<Move> legalMovesForPiece = getCurrentLegalMoves().get(piece);
+        HashSet<Move> legalMovesForPiece = this.CURRENT_LEGAL_MOVES.get(piece);
 
         if(legalMovesForPiece == null) return null;
         for(Move move: legalMovesForPiece){
@@ -366,6 +380,7 @@ public class Board {
 
         if ((moveType == MoveType.CASTLE_KING_SIDE) || (moveType == MoveType.CASTLE_QUEEN_SIDE)){
             //System.out.println(move);
+            piece.kingCastled = true;
             Piece rook = move.rookToCastle;
             previousPosition = move.rookPreviousPosition;
             Square targetPositionRook = move.rookTargetPosition;
@@ -411,9 +426,11 @@ public class Board {
         piece.firstMove = false;
 
         if(!simulation){
-        this.updateGameStatus();
-        // this.MOVE_HISTORY.put(this.MOVE_NUMBER, result);
-        // this.MOVE_NUMBER += 1;
+            this.CURRENT_LEGAL_MOVES = getCurrentLegalMoves();
+            this.GAME_STATE = this.getGameStatus(this.CURRENT_LEGAL_MOVES);
+            this.MOVE_HISTORY.put(this.MOVE_NUMBER, result);
+            this.MOVE_NUMBER += 1;
+            if(!this.WHITE_TURN) movePiece(HIVE.bestMove(this.CURRENT_LEGAL_MOVES,3,false), false);
         }
         
 
@@ -449,7 +466,7 @@ public class Board {
 
             if(moveType == MoveType.CASTLE_KING_SIDE || moveType == MoveType.CASTLE_QUEEN_SIDE){
                 //System.out.println("UNDOING KING TO " + previousPosition + " UNDOING ROOK TO " + move.rookPreviousPosition);
-                
+                piece.kingCastled = false;
                 Piece rook = move.rookToCastle;
                 previousPosition = move.rookPreviousPosition;
                 targetPosition = move.rookTargetPosition;
@@ -487,7 +504,7 @@ public class Board {
         }
     }
 
-    public GameState updateGameStatus(){
+    public GameState getGameStatus(HashMap<Piece, HashSet<Move>> currentLegalMoves){
 
         return GameState.ACTIVE;
 
@@ -595,7 +612,6 @@ public class Board {
         for(Square displacement: displacements){
             
             if(pinnedPieces.get(pawn) != null && !pinnedPieces.get(pawn).contains(displacement)) continue; //If this piece is pinned, it can only move in pinned displacements
-
             int dx = displacement.col;
             int dy = displacement.row;
 
@@ -639,6 +655,7 @@ public class Board {
                     targetPiece = null;
 
                     Move doubleMove = new Move(pawn,targetPiece,prevPos,newTargetPosition,moveType);
+
 
                     if(kingSafeAfterMove(doubleMove, checkKingSafety)){
                         pawnMoves.add(doubleMove);

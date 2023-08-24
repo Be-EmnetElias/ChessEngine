@@ -45,6 +45,9 @@ class ChessPanel extends JPanel {
     private static final String PIECES_PATH = "src/main/resources/assets/imgs/pieces.png";
 
     private static final Board board = new Board();
+
+    private static JButton flipBoardButton = new JButton("Flip");
+
     
     private int dragx = 0;
     private int dragy = 0;
@@ -55,7 +58,7 @@ class ChessPanel extends JPanel {
         allPieces = ImageIO.read(new File(PIECES_PATH));
         boardImage = boardImage.getScaledInstance(800, 800, BufferedImage.SCALE_SMOOTH);
         
-        board.setBoard("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
+        board.setBoard("random");
 
         // Slice the allPieces image into individual piece images
         char[] pieceLetters = new char[]{'K','Q','B','N','R','P','k','q','b','n','r','p'};
@@ -68,6 +71,14 @@ class ChessPanel extends JPanel {
             }
         }
 
+        flipBoardButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                board.BOARD_ORIENTATION *= -1;
+                System.out.println("Bottom is now " + ((board.BOARD_ORIENTATION == 1) ? "WHITE":"BLACK"));
+            }
+        });
+
 
         addMouseListener(new MouseAdapter() {
             @Override
@@ -77,9 +88,6 @@ class ChessPanel extends JPanel {
                 clickedPiece = board.getPiece(pressedSquare);
                 if(clickedPiece != null ){
                     moveHints = board.legalMoves(clickedPiece, true);
-                    System.out.print("ENPASSANT FOR BOARD: ");
-                    if(board.ENPASSANT_PIECE != null) System.out.println(board.ENPASSANT_PIECE.name + " " + board.ENPASSANT_PIECE.getPosition());
-                    else System.out.println("NONE");
                 }
             }
 
@@ -89,9 +97,9 @@ class ChessPanel extends JPanel {
                 if(clickedPiece != null){
                     Move userMove = board.userValidMove(clickedPiece, new Square(e.getX()/100, e.getY()/100));
                     if(userMove != null){
-                        if(userMove.promotionName != null && userMove.promotionName != Name.KNIGHT) {
+                        if(userMove.promotionName != null && userMove.promotionName != Name.QUEEN) {
                             Move userMove2 = userMove;
-                            userMove2.promotionName = Name.KNIGHT;
+                            userMove2.promotionName = Name.QUEEN;
                             board.movePiece(userMove2, false);
 
                         }else{
@@ -129,26 +137,38 @@ class ChessPanel extends JPanel {
         if(moveHints != null){
             for(Move move: moveHints){
                 Square hint = move.targetPosition;
-                g.setColor(Color.RED);
+
+                if(move.capturedPiece != null){ //capture
+                    g.setColor(new Color(54,247,106));
+                }
+                
+                if(move.capturedPiece == null){ //normal move
+                    g.setColor(new Color(255, 255, 255));
+                }
+
+                if(move.moveType == MoveType.ENPASSANT){ //enpassant
+                    g.setColor(new Color(150, 109, 247));
+                }
+
+                if(move.moveType == MoveType.CASTLE_KING_SIDE || move.moveType == MoveType.CASTLE_QUEEN_SIDE){ //castle
+                    g.setColor(new Color(250,175,2,255));
+                }
+
+                if(move.moveType == MoveType.CASTLE_KING_SIDE || move.moveType == MoveType.CASTLE_QUEEN_SIDE){ //castle
+                    g.setColor(new Color(250,175,2,255));
+                }
+
+                if(move.moveType == MoveType.PROMOTION){
+                    g.setColor(Color.RED);
+                }
+                
+
+
                 g.fillRect(hint.col*100,hint.row*100, 100,100);
+
             }
         }
-        // Draw the pieces
-        /* 
-        //int tileSize = getWidth() / 8;
-        // for (int i = 0; i < 12; i++) {
-        //     int row = i / 6;
-        //     int col = i % 6;
-        //     if (pieceImages[i] != dragImage) {
-        //         g.drawImage(pieceImages[i], col * tileSize, row * tileSize, tileSize, tileSize, null);
-        //     }
-        // }
 
-        // // Draw the dragged piece
-        // if (dragImage != null && dragPoint != null) {
-        //     g.drawImage(dragImage, dragPoint.x - tileSize / 2, dragPoint.y - tileSize / 2, tileSize, tileSize, null);
-        // }
-        */
         for(int row=0;row<8;row++){
             for(int col=0;col<8;col++){
                 Piece current = board.getPiece(new Square(col,row));
