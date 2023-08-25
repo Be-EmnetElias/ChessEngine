@@ -430,7 +430,7 @@ public class Board {
             this.GAME_STATE = this.getGameStatus(this.CURRENT_LEGAL_MOVES);
             this.MOVE_HISTORY.put(this.MOVE_NUMBER, result);
             this.MOVE_NUMBER += 1;
-            if(!this.WHITE_TURN) movePiece(HIVE.bestMove(this.CURRENT_LEGAL_MOVES,3,false), false);
+            if(!this.WHITE_TURN) movePiece(HIVE.bestMove(this.CURRENT_LEGAL_MOVES,2,false), false);
         }
         
 
@@ -830,6 +830,11 @@ public class Board {
 
     }
 
+    public boolean is(Piece piece, Name name){
+        if(piece == null) return false;
+        return piece.name == name;
+    }
+
     public Boolean areEnemies(Piece a, Piece b){
 
         if (a==null || b==null) return false;
@@ -838,7 +843,7 @@ public class Board {
     }
 
     public Piece getPiece(Square position){
-
+        if(!validPosition(position)) return null;
         return this.BOARD[position.row][position.col];
 
     }

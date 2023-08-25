@@ -58,7 +58,7 @@ class ChessPanel extends JPanel {
         allPieces = ImageIO.read(new File(PIECES_PATH));
         boardImage = boardImage.getScaledInstance(800, 800, BufferedImage.SCALE_SMOOTH);
         
-        board.setBoard("random");
+        board.setBoard("r4rk1/1pp1qppp/p1np1n2/2b1p1B1/2B1P1b1/P1NP1N2/1PP1QPPP/R4RK1 w - - 0 10 ");
 
         // Slice the allPieces image into individual piece images
         char[] pieceLetters = new char[]{'K','Q','B','N','R','P','k','q','b','n','r','p'};
