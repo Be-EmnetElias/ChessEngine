@@ -1,25 +1,19 @@
 package tests;
 
 import java.util.*;
-import main.java.Board;
-import main.java.util.*;
+import main.Board;
+import main.chessutil.*;
 
 public class test {
     
     public static Board board;
     public static TreeSet<String> NODES;
     public static void main(String[] args){
-        board = new Board();
-        
-        board.setBoard();
+        board = new Board("n1n1k3/PPP5/8/8/8/8/4Kppp/5N1N w - - 1 2");
 
         NODES = new TreeSet<>();
 
-        /*
-         *
-         */
-        nodeCount(3);
-        
+        nodeCount(2);
     }
 
     public static int nodeCount(int depth){ 
@@ -30,26 +24,32 @@ public class test {
         if(depth==0) return 1;
 
         int nodes = 0;
-        HashMap<Piece, HashSet<Move>> moves = board.getCurrentLegalMoves();
+        List<Move> moves = board.getCurrentLegalMoves();
         
 
-        for(Piece piece: moves.keySet()){
-            HashSet<Move> pieceMoves = moves.get(piece);
-            for(Move move: pieceMoves){
-                Move currentMove = board.movePiece(move, true);
-                int newNodes = nodeCount(start,depth-1);
-                if(depth==start){
-                    NODES.add(move.getStr() + ":" + newNodes);
-                }
-                nodes += newNodes;
-                
-                board.undoMove(currentMove);
+        for(Move move: moves){
+            //System.out.println();
+            // for(int i = depth; i<start; i++){
+            //     System.out.print("\t");
+            // }
+            board.movePiece(move, true);
+            if(move.getStr().equals("b7c8q")){
+                board.printBoard();
             }
+            int newNodes = nodeCount(start,depth-1);
+            if(depth==start){
+                System.out.println(move.getStr() + ":" + newNodes);
+                NODES.add(move.getStr() + ":" + newNodes);
+            }
+            nodes += newNodes;
+            
+            board.undoMove(move,true);
         }
+        
         if(depth==start){
-            for(String move: NODES){
-                System.out.println(move);
-            }
+            // for(String move: NODES){
+            //     System.out.println(move);
+            // }
             System.out.println("NODES: " + nodes);
         }
         return nodes;

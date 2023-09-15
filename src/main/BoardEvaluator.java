@@ -1,26 +1,32 @@
+package main;
 /**
  * * The board evaluator has 2 different evaluators. Both evaluators use the nega-max algorithm to traverse all moves to a certain depth.
  * * Each board position is then evaluated and given a score. The move that results in the highest score is then chosen. The first evaluator
  * * uses a static hand-crafted evaluator with chosen weights.
  */
-package main.java;
-import main.java.util.*;
+
+import main.chessutil.*;
+
 import java.util.*;
+
+
 
 public class BoardEvaluator {
     
     private Board BOARD;
 
-    private static final Square E4 = new Square(4,4);
+    // private static final Square E4 = new Square(4,4);
 
-    private static final Square E5 = new Square(4,3);
+    // private static final Square E5 = new Square(4,3);
 
-    private static final Square D4 = new Square(3,4);
+    // private static final Square D4 = new Square(3,4);
 
-    private static final Square D5 = new Square(3,3);
+    // private static final Square D5 = new Square(3,3);
 
 
-    public BoardEvaluator(Board board, boolean COLOR){ this.BOARD = board; }
+    // public BoardEvaluator(Board board, boolean COLOR){ 
+    //     this.BOARD = board; 
+    // }
 
     /**
      * Returns the best move out of these currentLegalMoves of this depth
@@ -29,44 +35,44 @@ public class BoardEvaluator {
      * @param COLOR
      * @return
      */
-    public Move bestMove(HashMap<Piece, HashSet<Move>> currentLegalMoves, int depth, boolean COLOR){
-        double maxScore = Double.NEGATIVE_INFINITY;
-        Move bestMove = null; 
-        for(Piece piece: currentLegalMoves.keySet()){
-            for(Move move: currentLegalMoves.get(piece)){
-                Move currentMove = BOARD.movePiece(move, true);
-                HashMap<Piece, HashSet<Move>> nextLegalMoves= BOARD.getCurrentLegalMoves();
-                double score = ((!COLOR)?1.0:-1.0) * negamax(nextLegalMoves,depth-1,COLOR);
-                BOARD.undoMove(currentMove);
+    // public Move bestMove(HashMap<Piece, HashSet<Move>> currentLegalMoves, int depth, boolean COLOR){
+    //     double maxScore = Double.NEGATIVE_INFINITY;
+    //     Move bestMove = null; 
+    //     for(Piece piece: currentLegalMoves.keySet()){
+    //         for(Move move: currentLegalMoves.get(piece)){
+    //             Move currentMove = BOARD.movePiece(move, true);
+    //             HashMap<Piece, HashSet<Move>> nextLegalMoves= BOARD.getCurrentLegalMoves();
+    //             double score = ((!COLOR)?1.0:-1.0) * negamax(nextLegalMoves,depth-1,COLOR);
+    //             BOARD.undoMove(currentMove);
 
-                if(score > maxScore){
-                    maxScore = score;
-                    bestMove = move;
-                }
-            }
-        }
-        return bestMove;
-    }
+    //             if(score > maxScore){
+    //                 maxScore = score;
+    //                 bestMove = move;
+    //             }
+    //         }
+    //     }
+    //     return bestMove;
+    // }
 
-    private double negamax(HashMap<Piece, HashSet<Move>>currentLegalMoves,int depth, boolean COLOR){
-        if(depth<=0) return staticEvaluation(currentLegalMoves,COLOR);
+    // private double negamax(HashMap<Piece, HashSet<Move>>currentLegalMoves,int depth, boolean COLOR){
+    //     if(depth<=0) return staticEvaluation(currentLegalMoves,COLOR);
 
-        double maxScore = Double.NEGATIVE_INFINITY;
-        for(Piece piece: currentLegalMoves.keySet()){
-            for(Move move: currentLegalMoves.get(piece)){
-                Move currentMove = BOARD.movePiece(move, true);
-                HashMap<Piece, HashSet<Move>> nextLegalMoves= BOARD.getCurrentLegalMoves();
-                double score = ((!COLOR)?1.0:-1.0) * negamax(nextLegalMoves,depth-1,!COLOR);
-                BOARD.undoMove(currentMove);
+    //     double maxScore = Double.NEGATIVE_INFINITY;
+    //     for(Piece piece: currentLegalMoves.keySet()){
+    //         for(Move move: currentLegalMoves.get(piece)){
+    //             Move currentMove = BOARD.movePiece(move, true);
+    //             HashMap<Piece, HashSet<Move>> nextLegalMoves= BOARD.getCurrentLegalMoves();
+    //             double score = ((!COLOR)?1.0:-1.0) * negamax(nextLegalMoves,depth-1,!COLOR);
+    //             BOARD.undoMove(currentMove);
 
-                if(score > maxScore){
-                    maxScore = score;
-                }
-            }
-        }
+    //             if(score > maxScore){
+    //                 maxScore = score;
+    //             }
+    //         }
+    //     }
 
-        return maxScore;
-    }
+    //     return maxScore;
+    // }
     
 
 /*
@@ -90,7 +96,7 @@ public class BoardEvaluator {
     
     RANK_PASSED_PAWN_WEIGHT = 1.0,
     
-    PASS_PAWN_WEIGHT = 1000.0,
+    PASS_PAWN_WEIGHT = 1.0,
     
     RANK_PASS_PAWN_WEIGHT = 1.0,
 
@@ -172,58 +178,57 @@ public class BoardEvaluator {
      * @see https://www.cmpe.boun.edu.tr/~gungort/undergraduateprojects/Tuning%20of%20Chess%20Evaluation%20Function%20by%20Using%20Genetic%20Algorithms.pdf
      * @return An double evaluating the position of this board
      */
-    public double staticEvaluation(HashMap<Piece, HashSet<Move>> currentLegalMoves, boolean COLOR){
+    public double staticEvaluation(/*HashMap<Piece, HashSet<Move>> currentLegalMoves, boolean COLOR*/){
         double score = 0;
-        HashSet<Piece> TEAM = BOARD.getPieces(COLOR);
 
         //GENERAL INFORMATION
-        score += weakCount(currentLegalMoves, TEAM, !COLOR)         *WEAK_COUNT_WEIGHT;
+        score += weakCount()         *WEAK_COUNT_WEIGHT;
 
         //PAWN INFORMATION
-        score += materialCount(COLOR ? Name.PAWNW:Name.PAWNB,TEAM)  *MATERIAL_COUNT_PAWN_WEIGHT;
-        score += centerPawnCount(COLOR)                             *CENTER_PAWN_COUNT_WEIGHT;
-        score += kingPawnShield(COLOR)                              *KING_PAWN_SHIELD_WEIGHT;
-        score += isolatedPawn(TEAM, COLOR)                          *ISOLATED_PAWN_WEIGHT;
-        score += doublePawn(TEAM, COLOR)                            *DOUBLE_PAWN_WEIGHT;
-        score += passPawn(TEAM, COLOR)                              *PASS_PAWN_WEIGHT;
-        score += rankPassPawn(TEAM, COLOR)                          *RANK_PASS_PAWN_WEIGHT;
-        score += backwardPawn(TEAM)                                 *BACKWARD_PAWN_WEIGHT;
-        score += blockedPawn(TEAM)                                  *BLOCKED_PAWN_WEIGHT;
-        score += blockedPassPawn(TEAM)                              *BLOCKED_PASSED_PAWN_WEIGHT;
+        score += materialCount()  *MATERIAL_COUNT_PAWN_WEIGHT;
+        score += centerPawnCount()                             *CENTER_PAWN_COUNT_WEIGHT;
+        score += kingPawnShield()                              *KING_PAWN_SHIELD_WEIGHT;
+        score += isolatedPawn()                          *ISOLATED_PAWN_WEIGHT;
+        score += doublePawn()                            *DOUBLE_PAWN_WEIGHT;
+        score += passPawn()                              *PASS_PAWN_WEIGHT;
+        score += rankPassPawn()                          *RANK_PASS_PAWN_WEIGHT;
+        score += backwardPawn()                                 *BACKWARD_PAWN_WEIGHT;
+        score += blockedPawn()                                  *BLOCKED_PAWN_WEIGHT;
+        score += blockedPassPawn()                              *BLOCKED_PASSED_PAWN_WEIGHT;
 
         //KNIGHT INFORMATION
-        score += materialCount(Name.KNIGHT,TEAM)                    *MATERIAL_COUNT_KNIGHT_WEIGHT;
-        score += mobility(currentLegalMoves,Name.KNIGHT)            *KNIGHT_MOBILITY_WEIGHT;
-        score += knightOnOutpost(TEAM, COLOR)                       *KNIGHT_ON_OUTPOST_WEIGHT;
-        score += knightOnCenter(TEAM)                               *KNIGHT_ON_CENTER_WEIGHT;
-        score += knightOnOuterEdge1(TEAM)                           *KNIGHT_ON_OUTER_EDGE_1_WEIGHT;
-        score += knightOnOuterEdge2(TEAM)                           *KNIGHT_ON_OUTER_EDGE_2_WEIGHT;
-        score += knightOnOuterEdge3(TEAM)                           *KNIGHT_ON_OUTER_EDGE_3_WEIGHT;
-        score += knightSupportedByPawn(TEAM)                        *KNIGHT_SUPPORTED_BY_PAWN_WEIGHT;
+        score += materialCount()                    *MATERIAL_COUNT_KNIGHT_WEIGHT;
+        score += mobility()            *KNIGHT_MOBILITY_WEIGHT;
+        score += knightOnOutpost()                       *KNIGHT_ON_OUTPOST_WEIGHT;
+        score += knightOnCenter()                               *KNIGHT_ON_CENTER_WEIGHT;
+        score += knightOnOuterEdge1()                           *KNIGHT_ON_OUTER_EDGE_1_WEIGHT;
+        score += knightOnOuterEdge2()                           *KNIGHT_ON_OUTER_EDGE_2_WEIGHT;
+        score += knightOnOuterEdge3()                           *KNIGHT_ON_OUTER_EDGE_3_WEIGHT;
+        score += knightSupportedByPawn()                        *KNIGHT_SUPPORTED_BY_PAWN_WEIGHT;
 
         //BISHOP INFORMATION
-        score += materialCount(Name.BISHOP,TEAM)                    *MATERIAL_COUNT_BISHOP_WEIGHT;
-        score += mobility(currentLegalMoves, Name.BISHOP)           *BISHOP_MOBILITY_WEIGHT;
-        score += bishopOnLargeDiagonal(TEAM)                        *BISHOP_ON_LARGE_DIAGONAL_WEIGHT;
-        score += bishopPair(TEAM)                                   *BISHOP_PAIR_WEIGHT;
+        score += materialCount()                    *MATERIAL_COUNT_BISHOP_WEIGHT;
+        score += mobility()           *BISHOP_MOBILITY_WEIGHT;
+        score += bishopOnLargeDiagonal()                        *BISHOP_ON_LARGE_DIAGONAL_WEIGHT;
+        score += bishopPair()                                   *BISHOP_PAIR_WEIGHT;
 
         //ROOK INFORMATION
-        score += materialCount(Name.ROOK,TEAM)                      *MATERIAL_COUNT_ROOK_WEIGHT;
-        score += mobility(currentLegalMoves,Name.ROOK)              *ROOK_MOBILITY_WEIGHT;
-        score += rookBehindPassPawn(TEAM)                           *ROOK_BEHIND_PASS_PAWN;
-        score += rookOnClosedFile(TEAM)                             *ROOK_ON_CLOSED_FILE;
-        score += rookOnOpenFile(TEAM)                               *ROOK_ON_OPEN_FILE;
-        score += rookOnSemiOpenFile(TEAM)                           *ROOK_ON_SEMI_OPEN_FILE;
-        score += rooksConnected(TEAM)                               *ROOKS_CONNECTED_WEIGHT;
+        score += materialCount()                      *MATERIAL_COUNT_ROOK_WEIGHT;
+        score += mobility()              *ROOK_MOBILITY_WEIGHT;
+        score += rookBehindPassPawn()                           *ROOK_BEHIND_PASS_PAWN;
+        score += rookOnClosedFile()                             *ROOK_ON_CLOSED_FILE;
+        score += rookOnOpenFile()                               *ROOK_ON_OPEN_FILE;
+        score += rookOnSemiOpenFile()                           *ROOK_ON_SEMI_OPEN_FILE;
+        score += rooksConnected()                               *ROOKS_CONNECTED_WEIGHT;
 
         //QUEEN INFORMATION
-        score += materialCount(Name.QUEEN,TEAM)                     *MATERIAL_COUNT_QUEEN_WEIGHT;
-        score += mobility(currentLegalMoves, Name.QUEEN)            *QUEEN_MOBILITY_WEIGHT;
+        score += materialCount()                     *MATERIAL_COUNT_QUEEN_WEIGHT;
+        score += mobility()            *QUEEN_MOBILITY_WEIGHT;
 
         //KING INFORMATION
-        score += kingCastled(COLOR)                                 *KING_CASTLED_WEIGHT;
-        score += kingAttackedValue(COLOR)                           *KING_ATTACKED_VALUE_WEIGHT;
-        score += kingDefendedValue(COLOR)                           *KING_DEFENDED_VALUE_WEIGHT;
+        score += kingCastled()                                 *KING_CASTLED_WEIGHT;
+        score += kingAttackedValue()                           *KING_ATTACKED_VALUE_WEIGHT;
+        score += kingDefendedValue()                           *KING_DEFENDED_VALUE_WEIGHT;
 
         return score;
     }
@@ -233,7 +238,7 @@ public class BoardEvaluator {
      * Returns the number of squares that cannot be protected by this team
      * @return
      */
-    public int weakCount(HashMap<Piece, HashSet<Move>> currentLegalMoves, HashSet<Piece> TEAM, boolean enemyColor){
+    public int weakCount(){
         int score = 0;
         //TODO:
         return score;
@@ -245,7 +250,7 @@ public class BoardEvaluator {
      * @param TEAM
      * @return
      */
-    public int materialCount(Name name,HashSet<Piece> TEAM){
+    public int materialCount(){
         int score = 0;
         //TODO:
         return score;
@@ -257,7 +262,7 @@ public class BoardEvaluator {
      * @param name
      * @return
      */
-    public int mobility(HashMap<Piece, HashSet<Move>> currentLegalMoves, Name name){
+    public int mobility(){
         int score = 0;
         //TODO:
         return score;
@@ -269,7 +274,7 @@ public class BoardEvaluator {
      * @param COLOR
      * @return
      */
-    public int centerPawnCount(boolean COLOR){
+    public int centerPawnCount(){
         int score = 0;
         //TODO:
         return score;
@@ -280,7 +285,7 @@ public class BoardEvaluator {
      * @param COLOR
      * @return
      */
-    public int kingPawnShield(boolean COLOR){
+    public int kingPawnShield(){
         int score = 0;
         //TODO:
         return score;
@@ -292,7 +297,7 @@ public class BoardEvaluator {
      * @param COLOR
      * @return
      */
-    public int isolatedPawn(HashSet<Piece> TEAM, boolean COLOR){
+    public int isolatedPawn(){
         int score = 0;
         //TODO:
         return score;
@@ -304,7 +309,7 @@ public class BoardEvaluator {
      * @param COLOR
      * @return
      */
-    public int doublePawn(HashSet<Piece> TEAM, boolean COLOR){
+    public int doublePawn(){
         int score = 0;
         //TODO:
         return score;
@@ -316,7 +321,7 @@ public class BoardEvaluator {
      * @param COLOR
      * @return
      */
-    public int passPawn(HashSet<Piece> TEAM, boolean COLOR){
+    public int passPawn(){
         int score = 0;
         //TODO:
         return score;
@@ -327,7 +332,7 @@ public class BoardEvaluator {
      * @param TEAM
      * @return
      */
-    public int rankPassPawn(HashSet<Piece> TEAM, boolean COLOR){
+    public int rankPassPawn(){
         int score = 0;
         //TODO:
         return score;
@@ -337,7 +342,7 @@ public class BoardEvaluator {
      * @param TEAM
      * @return
      */
-    public int backwardPawn(HashSet<Piece> TEAM){
+    public int backwardPawn(){
         int score = 0;
         //TODO:
         return score;
@@ -349,7 +354,7 @@ public class BoardEvaluator {
      * @param TEAM
      * @return
      */
-    public int blockedPawn(HashSet<Piece> TEAM){
+    public int blockedPawn(){
         int score = 0;
         //TODO:
         return score;
@@ -360,7 +365,7 @@ public class BoardEvaluator {
      * @param TEAM
      * @return
      */
-    public int blockedPassPawn(HashSet<Piece> TEAM){
+    public int blockedPassPawn(){
         int score = 0;
         //TODO:
         return score;
@@ -372,7 +377,7 @@ public class BoardEvaluator {
      * @param COLOR
      * @return Returns the amount of knights on an outpost
      */
-    public int knightOnOutpost(HashSet<Piece> TEAM, boolean COLOR){
+    public int knightOnOutpost(){
         int score = 0;
         //TODO:
         return score;
@@ -384,7 +389,7 @@ public class BoardEvaluator {
      * @param TEAM
      * @return
      */
-    public int knightSupportedByPawn(HashSet<Piece> TEAM){
+    public int knightSupportedByPawn(){
         int score = 0;
         //TODO:
         return score;
@@ -395,7 +400,7 @@ public class BoardEvaluator {
      * @param TEAM
      * @return
      */
-    public int knightOnCenter(HashSet<Piece> TEAM){
+    public int knightOnCenter(){
         int score = 0;
         //TODO:
         return score;
@@ -406,7 +411,7 @@ public class BoardEvaluator {
      * @param TEAM
      * @return
      */
-    public int knightOnOuterEdge3(HashSet<Piece> TEAM){
+    public int knightOnOuterEdge3(){
         int score = 0;
         //TODO:
         return score;
@@ -417,7 +422,7 @@ public class BoardEvaluator {
      * @param TEAM
      * @return
      */
-    public int knightOnOuterEdge2(HashSet<Piece> TEAM){
+    public int knightOnOuterEdge2(){
         int score = 0;
         //TODO:
         return score;
@@ -428,7 +433,7 @@ public class BoardEvaluator {
      * @param TEAM
      * @return
      */
-    public int knightOnOuterEdge1(HashSet<Piece> TEAM){
+    public int knightOnOuterEdge1(){
         int score = 0;
         //TODO:
         return score;
@@ -439,7 +444,7 @@ public class BoardEvaluator {
      * @param TEAM
      * @return
      */
-    public int bishopOnLargeDiagonal(HashSet<Piece> TEAM){
+    public int bishopOnLargeDiagonal(){
         int score = 0;
         //TODO:
         return score;
@@ -450,7 +455,7 @@ public class BoardEvaluator {
      * @param TEAM
      * @return
      */
-    public int bishopPair(HashSet<Piece> TEAM){
+    public int bishopPair(){
         int score = 0;
         //TODO:
         return score;
@@ -461,7 +466,7 @@ public class BoardEvaluator {
      * @param TEAM
      * @return
      */
-    public int rookBehindPassPawn(HashSet<Piece> TEAM){
+    public int rookBehindPassPawn(){
         int score = 0;
         //TODO:
         return score;
@@ -472,7 +477,7 @@ public class BoardEvaluator {
      * @param TEAM
      * @return
      */
-    public int rookOnOpenFile(HashSet<Piece> TEAM){
+    public int rookOnOpenFile(){
         int score = 0;
         //TODO:
         return score;
@@ -483,7 +488,7 @@ public class BoardEvaluator {
      * @param TEAM
      * @return
      */
-    public int rookOnSemiOpenFile(HashSet<Piece> TEAM){
+    public int rookOnSemiOpenFile(){
         int score = 0;
         //TODO:
         return score;
@@ -495,7 +500,7 @@ public class BoardEvaluator {
      * @param TEAM
      * @return
      */
-    public int rookOnClosedFile(HashSet<Piece> TEAM){
+    public int rookOnClosedFile(){
         int score = 0;
         //TODO:
         return score;
@@ -506,7 +511,7 @@ public class BoardEvaluator {
      * @param TEAM
      * @return
      */
-    public int rooksConnected(HashSet<Piece> TEAM){
+    public int rooksConnected(){
         int score = 0;
         //TODO:
         return score;
@@ -517,8 +522,10 @@ public class BoardEvaluator {
      * @param COLOR
      * @return
      */
-    public int kingCastled(boolean COLOR){
-        return (BOARD.getKing(COLOR).kingCastled) ? 1:0;
+    public int kingCastled(){
+        int score = 0;
+        //TODO:
+        return score;
     }
 
     /**
@@ -526,7 +533,7 @@ public class BoardEvaluator {
      * @param COLOR
      * @return
      */
-    public int kingAttackedValue(boolean COLOR){
+    public int kingAttackedValue(){
         int score = 0;
         //TODO:
         return score;
@@ -537,7 +544,7 @@ public class BoardEvaluator {
      * @param COLOR
      * @return
      */
-    public int kingDefendedValue(boolean COLOR){
+    public int kingDefendedValue(){
         int score = 0;
         //TODO:
         return score;
