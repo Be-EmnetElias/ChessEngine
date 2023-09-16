@@ -59,10 +59,9 @@ public class Board{
      */
     public boolean IS_WHITE_TURN;
 
-    public boolean print;
 
     public Board(){
-        setBoard("n1n5/PPPk4/8/8/8/8/4Kppp/5N1N b - - 0 1");
+        setBoard("start");
     }
 
     public Board(String fenposition){
@@ -244,16 +243,16 @@ public class Board{
         if(pieceType == Piece.BLACK_KING){
             this.CASLTING_RIGHTS &= ~(4 | 8);
         }
-        if(pieceType == Piece.WHITE_ROOK && fromSquare == 63){
+        if((pieceType == Piece.WHITE_ROOK && fromSquare == 63) || (move.captured == Piece.WHITE_ROOK && toSquare == 63)){
             this.CASLTING_RIGHTS &= 14;
         }
-        if(pieceType == Piece.WHITE_ROOK && fromSquare == 56){
+        if((pieceType == Piece.WHITE_ROOK && fromSquare == 56) || (move.captured == Piece.WHITE_ROOK && toSquare == 56)){
             this.CASLTING_RIGHTS &= 13;
         }
-        if(pieceType == Piece.BLACK_ROOK && fromSquare == 7){
+        if((pieceType == Piece.BLACK_ROOK && fromSquare == 7) || (move.captured == Piece.BLACK_ROOK && toSquare == 7)){
             this.CASLTING_RIGHTS &= 11;
         }
-        if(pieceType == Piece.BLACK_ROOK && fromSquare == 0){
+        if((pieceType == Piece.BLACK_ROOK && fromSquare == 0) || (move.captured == Piece.BLACK_ROOK && toSquare == 0)){
             this.CASLTING_RIGHTS &= 7;
         }
 
@@ -438,6 +437,7 @@ public class Board{
 
     public List<Move> getCurrentLegalMoves(){
         int kingPosition = getKingPosition(this.IS_WHITE_TURN);
+        int enemyKingPosition = getKingPosition(!this.IS_WHITE_TURN);
         long[] team = getTeamBitBoards(this.IS_WHITE_TURN);
         long[] enemies = getTeamBitBoards(!this.IS_WHITE_TURN);
         long[] teamWithoutKing = getTeamBitBoardsWithoutKing(this.IS_WHITE_TURN);
@@ -447,6 +447,12 @@ public class Board{
         List<Move> enemyMoves = getPsuedoLegalMoves(enemies,teamWithoutKing,new ArrayList<Integer>(),board,!this.IS_WHITE_TURN, true,false,captureMask,pushMask, kingPosition);
         List<Integer> dangerSquares = new ArrayList<>();
 
+        for(int displacement: new int[]{-9,-8,-7,-1,1,7,8,9}){
+            int toSquare = enemyKingPosition + displacement;
+            if(validSquare(toSquare)){
+                dangerSquares.add(toSquare);
+            }
+        }
         Move checker = null;
         boolean doubleCheck = false;
         for(Move move: enemyMoves){
@@ -475,9 +481,9 @@ public class Board{
                 int dy = (kingPosition / 8) - (checker.fromSquare / 8);
                 int dx = (kingPosition % 8) - (checker.fromSquare % 8);
                 if (dy > 1) dy = 1;
-                if (dy < 1) dy = -1;
+                if (dy < 0) dy = -1;
                 if(dx > 1) dx = 1;
-                if (dx < 1) dx = -1;
+                if (dx < 0) dx = -1;
                 int displacement = dx + (dy == 1 ? 8:0) + (dy == -1 ? -8:0);
                 int current = checker.fromSquare + displacement;
                 while(current != kingPosition){
@@ -589,7 +595,7 @@ public class Board{
         List<Move> result = new ArrayList<>();
 
         // Displacements for a knight
-        int[] pawnDisplacements = (isWhite) ? new int[]{-8,-7,-9,-16}: new int[]{16,8,7,9};
+        int[] pawnDisplacements = (isWhite) ? new int[]{-8,-7,-9}: new int[]{8,7,9};
 
         while (pawns != 0) {
             int fromSquare = Long.numberOfTrailingZeros(pawns);  // Find the square number of one of the knights
@@ -604,11 +610,7 @@ public class Board{
                 if (validSquare(toSquare)) {
                     boolean isPromoting = (isWhite && toSquare < 8) || (!isWhite && toSquare > 56);
                     Move move = null;
-                    if(captureMask != -1 || pushMask != null){
-                        if(toSquare != captureMask && (pushMask == null || !((pushMask.getLong() & (1L << toSquare)) != 0))){
-                            continue;
-                        }
-                    }
+                    
                     int toFile = toSquare % 8;
                     int toRank = toSquare / 8;
                     if (Math.abs(fromFile - toFile) > 2 || Math.abs(fromRank - toRank) > 2){
@@ -619,8 +621,9 @@ public class Board{
                         move = new Move(fromSquare, toSquare, getPieceAtSquare(fromSquare), getPieceAtSquare(toSquare), MoveType.DEFAULT);
                     }
                     
-                    if(!attacksOnly && (Math.abs(displacement) == 16) && canJump && (getPieceAtSquare(fromSquare + displacement/2) == Piece.EMPTY) && (getPieceAtSquare(toSquare) == Piece.EMPTY)){
-                        move = new Move(fromSquare, toSquare, getPieceAtSquare(fromSquare), getPieceAtSquare(toSquare), MoveType.DOUBLE);
+                    //double atack
+                    if(!attacksOnly && (captureMask == -1) && (pushMask == null || (pushMask.getLong() & (1L << (toSquare + displacement))) != 0) && (Math.abs(displacement) == 8) && canJump && (getPieceAtSquare(toSquare) == Piece.EMPTY) && (getPieceAtSquare(toSquare+displacement) == Piece.EMPTY)){
+                        result.add(new Move(fromSquare, toSquare+displacement, getPieceAtSquare(fromSquare), getPieceAtSquare(toSquare+displacement), MoveType.DOUBLE));
                     }
                     
                     //When attacksOnly is true, we are looking for all attacks
@@ -632,6 +635,11 @@ public class Board{
                         move = new Move(fromSquare, toSquare, getPieceAtSquare(fromSquare), getPieceAtSquare(toSquare + (isWhite?8:-8)), MoveType.ENPASSANT);
                     }
 
+                    if(captureMask != -1 || pushMask != null){
+                        if(toSquare != captureMask && (pushMask == null || !((pushMask.getLong() & (1L << toSquare)) != 0))){
+                            continue;
+                        }
+                    }
                     if(move != null && isPromoting){
                         Move promoteQueen = new Move(move);
                         promoteQueen.flags.add(MoveType.PROMOTION);
@@ -689,9 +697,9 @@ public class Board{
                         result.add(new Move(fromSquare, toSquare, getPieceAtSquare(fromSquare), getPieceAtSquare(toSquare), MoveType.DEFAULT));
 
                         if(((displacement == 1 && isWhite && (CASLTING_RIGHTS & 1) != 0) && getPieceAtSquare(61) == Piece.EMPTY) ||
-                            ((displacement == -1 && isWhite && (CASLTING_RIGHTS & 2) != 0) && getPieceAtSquare(57) == Piece.EMPTY) ||
+                            ((displacement == -1 && isWhite && (CASLTING_RIGHTS & 2) != 0) && getPieceAtSquare(57) == Piece.EMPTY && getPieceAtSquare(59) == Piece.EMPTY)  ||
                             ((displacement == 1 && !isWhite && (CASLTING_RIGHTS & 4) != 0) && getPieceAtSquare(5) == Piece.EMPTY) || 
-                            ((displacement == -1 && !isWhite && (CASLTING_RIGHTS & 8) != 0) && getPieceAtSquare(1) == Piece.EMPTY)){
+                            ((displacement == -1 && !isWhite && (CASLTING_RIGHTS & 8) != 0) && getPieceAtSquare(1) == Piece.EMPTY && getPieceAtSquare(3) == Piece.EMPTY) ){
                             
                             if(!dangerSquares.contains(kingPosition) && getPieceAtSquare(toSquare +displacement) == Piece.EMPTY && !dangerSquares.contains(toSquare + displacement)){
                                 result.add(new Move(fromSquare, toSquare + displacement, getPieceAtSquare(fromSquare), getPieceAtSquare(toSquare+displacement), MoveType.DEFAULT));
@@ -723,7 +731,7 @@ public class Board{
             int fromSquare = Long.numberOfTrailingZeros(pieces);  // Find the square number of one of the bishops
 
             for (int displacement : displacements) {
-                if(pinnedPieces.containsKey(fromSquare) && displacement != pinnedPieces.get(fromSquare)) continue;
+                if(pinnedPieces.containsKey(fromSquare) && !(displacement == pinnedPieces.get(fromSquare) || displacement == -1 * pinnedPieces.get(fromSquare))) continue;
                 int toSquare = fromSquare;
 
                 while (true) {
@@ -939,7 +947,7 @@ public class Board{
         BLACK_QUEEN_BITBOARD = new Bitboard(0L);
         BLACK_KING_BITBOARD = new Bitboard(0L);
 
-        ENPASSANT_SQUARE = 0;
+        ENPASSANT_SQUARE = -1;
         CASLTING_RIGHTS = 0;
 
         int row = 0;  // Start at the top row

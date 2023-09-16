@@ -8,12 +8,14 @@ public class test {
     
     public static Board board;
     public static TreeSet<String> NODES;
-    public static void main(String[] args){
-        board = new Board("n1n1k3/PPP5/8/8/8/8/4Kppp/5N1N w - - 1 2");
 
+    public static boolean print = false;
+    public static void main(String[] args){
+        //board = new Board("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
+        board = new Board();
         NODES = new TreeSet<>();
 
-        nodeCount(2);
+        nodeCount(5);
     }
 
     public static int nodeCount(int depth){ 
@@ -33,9 +35,10 @@ public class test {
             //     System.out.print("\t");
             // }
             board.movePiece(move, true);
-            if(move.getStr().equals("b7c8q")){
-                board.printBoard();
-            }
+            // if(move.getStr().equals("b7a8q")){
+            //     print = true;
+            // }
+            if(print) board.printBoard();
             int newNodes = nodeCount(start,depth-1);
             if(depth==start){
                 System.out.println(move.getStr() + ":" + newNodes);
