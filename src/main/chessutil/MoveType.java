@@ -5,6 +5,7 @@ public enum MoveType {
     CAPTURE,
     DOUBLE,
     CASTLE,
+    CHECK,
     PROMOTION,
     ENPASSANT;
 

@@ -18,7 +18,6 @@
  *      the pawns and check if the king is being attacked horizontally.
  */
 
-//TODO: Fix move/unmove
 //TODO: Check tests
 //TODO: Implement board evaluator
 
@@ -59,9 +58,17 @@ public class Board{
      */
     public boolean IS_WHITE_TURN;
 
+    /**
+     * Evaluates a board position and finds the 'best' move
+     */
+    public Evaluator HIVE;
+
 
     public Board(){
-        setBoard("start");
+        setBoard("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
+        
+        HIVE = new Evaluator();
+        HIVE.BOARD = this;
     }
 
     public Board(String fenposition){
@@ -263,6 +270,7 @@ public class Board{
         
         
         this.IS_WHITE_TURN = !this.IS_WHITE_TURN;
+        
     }
 
     public void undoMove(Move move, boolean simulation){
@@ -434,17 +442,16 @@ public class Board{
         
     }
 
-
-    public List<Move> getCurrentLegalMoves(){
-        int kingPosition = getKingPosition(this.IS_WHITE_TURN);
-        int enemyKingPosition = getKingPosition(!this.IS_WHITE_TURN);
-        long[] team = getTeamBitBoards(this.IS_WHITE_TURN);
-        long[] enemies = getTeamBitBoards(!this.IS_WHITE_TURN);
-        long[] teamWithoutKing = getTeamBitBoardsWithoutKing(this.IS_WHITE_TURN);
+    public List<Move> getCurrentLegalMoves(boolean isWhite){
+        int kingPosition = getKingPosition(isWhite);
+        int enemyKingPosition = getKingPosition(!isWhite);
+        long[] team = getTeamBitBoards(isWhite);
+        long[] enemies = getTeamBitBoards(!isWhite);
+        long[] teamWithoutKing = getTeamBitBoardsWithoutKing(isWhite);
         long[] board = getAllBitboards();
         Bitboard pushMask = null;
         int captureMask = -1;
-        List<Move> enemyMoves = getPsuedoLegalMoves(enemies,teamWithoutKing,new ArrayList<Integer>(),board,!this.IS_WHITE_TURN, true,false,captureMask,pushMask, kingPosition);
+        List<Move> enemyMoves = getPsuedoLegalMoves(enemies,teamWithoutKing,new ArrayList<Integer>(),board,!isWhite, true,false,captureMask,pushMask, kingPosition);
         List<Integer> dangerSquares = new ArrayList<>();
 
         for(int displacement: new int[]{-9,-8,-7,-1,1,7,8,9}){
@@ -493,7 +500,7 @@ public class Board{
             }
         }
 
-        List<Move> legalMoves = getPsuedoLegalMoves(team,enemies,dangerSquares,board,this.IS_WHITE_TURN,false,doubleCheck,captureMask,pushMask, kingPosition);
+        List<Move> legalMoves = getPsuedoLegalMoves(team,enemies,dangerSquares,board,isWhite,false,doubleCheck,captureMask,pushMask, kingPosition);
         return legalMoves;
     }
 
@@ -522,6 +529,11 @@ public class Board{
         moves.addAll(slidingPieceMoves(team[3],teamPieces,enemyPieces, isWhite, "ROOK", captureMask,pushMask, pinnedPieces,removeKing));
         moves.addAll(slidingPieceMoves(team[4],teamPieces,enemyPieces, isWhite, "QUEEN", captureMask,pushMask, pinnedPieces,removeKing));
 
+        for(Move move: moves){
+            if(move.toSquare == kingPosition){
+                move.flags.add(MoveType.CHECK);
+            }
+        }
 
         return moves;
     }
@@ -595,7 +607,7 @@ public class Board{
         List<Move> result = new ArrayList<>();
 
         // Displacements for a knight
-        int[] pawnDisplacements = (isWhite) ? new int[]{-8,-7,-9}: new int[]{8,7,9};
+        int[] pawnDisplacements = (isWhite) ? new int[]{-16,-8,-7,-9}: new int[]{16,8,7,9};
 
         while (pawns != 0) {
             int fromSquare = Long.numberOfTrailingZeros(pawns);  // Find the square number of one of the knights
@@ -603,7 +615,7 @@ public class Board{
             int fromRank = fromSquare / 8;
 
             for (int displacement : pawnDisplacements) {
-                if(pinnedPieces.containsKey(fromSquare) && displacement != pinnedPieces.get(fromSquare)) continue;
+                if(pinnedPieces.containsKey(fromSquare) && displacement != pinnedPieces.get(fromSquare) && !(Math.abs(displacement) == 16 && Math.abs(pinnedPieces.get(fromSquare)) == 8)) continue;
                 int toSquare = fromSquare + displacement;
                 boolean canJump = (isWhite && fromSquare/8 == 6) || (!isWhite && fromSquare/8 == 1);
                 // Check that the destination square is on the board
@@ -616,14 +628,15 @@ public class Board{
                     if (Math.abs(fromFile - toFile) > 2 || Math.abs(fromRank - toRank) > 2){
                         continue;
                     }
+
                     // forward move, attacksOnly must be false, since this is not an attack
                     if (!attacksOnly && Math.abs(displacement) == 8 && getPieceAtSquare(toSquare) == Piece.EMPTY) {
                         move = new Move(fromSquare, toSquare, getPieceAtSquare(fromSquare), getPieceAtSquare(toSquare), MoveType.DEFAULT);
                     }
                     
                     //double atack
-                    if(!attacksOnly && (captureMask == -1) && (pushMask == null || (pushMask.getLong() & (1L << (toSquare + displacement))) != 0) && (Math.abs(displacement) == 8) && canJump && (getPieceAtSquare(toSquare) == Piece.EMPTY) && (getPieceAtSquare(toSquare+displacement) == Piece.EMPTY)){
-                        result.add(new Move(fromSquare, toSquare+displacement, getPieceAtSquare(fromSquare), getPieceAtSquare(toSquare+displacement), MoveType.DOUBLE));
+                    if(!attacksOnly && (Math.abs(displacement) == 16) && canJump && (getPieceAtSquare(toSquare) == Piece.EMPTY) && (getPieceAtSquare(fromSquare+displacement/2) == Piece.EMPTY)){
+                        move = new Move(fromSquare, toSquare, getPieceAtSquare(fromSquare), getPieceAtSquare(toSquare), MoveType.DOUBLE);
                     }
                     
                     //When attacksOnly is true, we are looking for all attacks
@@ -640,6 +653,7 @@ public class Board{
                             continue;
                         }
                     }
+                    
                     if(move != null && isPromoting){
                         Move promoteQueen = new Move(move);
                         promoteQueen.flags.add(MoveType.PROMOTION);
@@ -733,11 +747,12 @@ public class Board{
             for (int displacement : displacements) {
                 if(pinnedPieces.containsKey(fromSquare) && !(displacement == pinnedPieces.get(fromSquare) || displacement == -1 * pinnedPieces.get(fromSquare))) continue;
                 int toSquare = fromSquare;
-
                 while (true) {
+                    boolean addMove = true; 
                     int toFile = toSquare % 8;
                     toSquare += displacement;
 
+                    
                     
                     // Check for crossing file boundaries
                     if (Math.abs(toFile - (toSquare % 8)) > 1) break;
@@ -750,14 +765,22 @@ public class Board{
 
                     if(captureMask != -1 || pushMask != null){
                         if(toSquare != captureMask && (pushMask == null || !((pushMask.getLong() & (1L << toSquare)) != 0))){
-                            continue;
+                            addMove = false;
                         }
                     }
 
-                    result.add(new Move(fromSquare, toSquare, getPieceAtSquare(fromSquare), getPieceAtSquare(toSquare), MoveType.DEFAULT));
+                    if(addMove){
+                        Move move = new Move(fromSquare, toSquare, getPieceAtSquare(fromSquare), getPieceAtSquare(toSquare), MoveType.DEFAULT);
+                        result.add(move);
+                        if(((1 << toSquare) & enemies) != 0) move.flags.add(MoveType.CAPTURE);
+                    }
+
+                    
 
                     // Check if the destination square is occupied by an enemy piece
                     if (isOccupiedByOwnTeam(toSquare, enemies) || isOccupiedByOwnTeam(toSquare, team)) break;
+                    
+                    
                 }
             }
 
@@ -888,7 +911,7 @@ public class Board{
     }
 
     public Move validateUserMove(int previousSquare, int targetSquare, Piece piece){
-        List<Move> legalMoves = getCurrentLegalMoves();
+        List<Move> legalMoves = getCurrentLegalMoves(this.IS_WHITE_TURN);
         boolean promotion = (piece == Piece.WHITE_PAWN && targetSquare < 8) || (piece == Piece.BLACK_PAWN && targetSquare > 55);
         for(Move move: legalMoves){
             if(move.fromSquare == previousSquare && move.toSquare == targetSquare && move.piece == piece && !promotion){
@@ -988,7 +1011,7 @@ public class Board{
         if (castleRights.contains("k")) CASLTING_RIGHTS |= 4;  // Black King-side
         if (castleRights.contains("q")) CASLTING_RIGHTS |= 8;  // Black Queen-side
 
-        getCurrentLegalMoves();
+        getCurrentLegalMoves(this.IS_WHITE_TURN);
     }
 
     /**

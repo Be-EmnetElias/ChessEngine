@@ -59,6 +59,8 @@ class ChessPanel extends JPanel {
     private int dragx = 0;
     private int dragy = 0;
 
+    private int depth = 4;
+
     public ChessPanel() throws IOException {
 
         boardImage = ImageIO.read(new File(BG_PATH));
@@ -106,17 +108,23 @@ class ChessPanel extends JPanel {
 
             @Override
             public void mouseReleased(MouseEvent e) {
+                boolean validMove = false;
                 // Handle mouse release logic
                 if(clickedPiece != null){
                     
                     Move userMove = board.validateUserMove(clickedRow * 8 + clickedCol, e.getY()/100 * 8 + e.getX()/100, clickedPiece);
                     currentLegalMoves.clear();
-                    currentLegalMoves.addAll(board.getCurrentLegalMoves());
+                    currentLegalMoves.addAll(board.getCurrentLegalMoves(board.IS_WHITE_TURN));
+                    if(currentLegalMoves.isEmpty()){
+                        System.out.println("CHECKMATE. YOU LOST");
+                    }
 
                     if(userMove != null){ //MOVE PIECE
                         board.movePiece(userMove,false);
                         moveHistory[0] = userMove.fromSquare;
                         moveHistory[1] = userMove.toSquare;
+                        validMove = true;
+
                     }else{ //RESET PIECE
                         dragx = clickedCol * 100;
                         dragy = clickedRow * 100;
@@ -125,6 +133,15 @@ class ChessPanel extends JPanel {
                     clickedPiece = null;
                 }
                 repaint();
+                if(validMove){
+                    Move bestMove = board.HIVE.bestMove(board.getCurrentLegalMoves(board.IS_WHITE_TURN),depth,board.IS_WHITE_TURN);
+                    if(bestMove != null){
+                        board.movePiece(bestMove,false);
+                        moveHistory[0] = bestMove.fromSquare;
+                        moveHistory[1] = bestMove.toSquare;
+                    }
+                    else System.out.println("CHECKMATE. YOU WON");
+                }
             }
         });
 
