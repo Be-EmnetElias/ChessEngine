@@ -1,55 +1,49 @@
 package tests;
 
 import java.util.*;
-import main.java.Board;
-import main.java.util.*;
+import main.Board;
+import main.chessutil.*;
 
 public class test {
     
     public static Board board;
     public static TreeSet<String> NODES;
+
     public static void main(String[] args){
         board = new Board();
-        
-        board.setBoard("rnbq1k1r/pp1Pbppp/2p5/8/2B5/8/PPP1NnPP/RNBQK2R w KQ - 1 8 ");
-
+        //board = new Board();
         NODES = new TreeSet<>();
 
-        /*
-         *
-         */
-        nodeCount(5);
-        
+        nodeCount(6);
     }
 
-    public static int nodeCount(int depth){ 
+    public static long nodeCount(int depth){ 
         return nodeCount(depth,depth);
     }
     
-    public static int nodeCount(int start, int depth){
+    public static long nodeCount(int start, int depth){
         if(depth==0) return 1;
 
         int nodes = 0;
-        HashMap<Piece, HashSet<Move>> moves = board.getCurrentLegalMoves();
+        List<Move> moves = board.getCurrentLegalMoves(board.IS_WHITE_TURN);
         
 
-        for(Piece piece: moves.keySet()){
-            HashSet<Move> pieceMoves = moves.get(piece);
-            for(Move move: pieceMoves){
-                Move currentMove = board.movePiece(move, true);
-                int newNodes = nodeCount(start,depth-1);
-                if(depth==start){
-                    NODES.add(move.getStr() + ":" + newNodes);
-                }
-                nodes += newNodes;
-                
-                board.undoMove(currentMove);
+        for(Move move: moves){
+
+            board.movePiece(move, true);
+
+            long newNodes = nodeCount(start,depth-1);
+            if(depth==start){
+                System.out.println(move.getStr() + ":" + newNodes);
+                NODES.add(move.getStr() + ":" + newNodes);
             }
+            nodes += newNodes;
+            
+            board.undoMove(move,true);
         }
+        
         if(depth==start){
-            for(String move: NODES){
-                System.out.println(move);
-            }
+
             System.out.println("NODES: " + nodes);
         }
         return nodes;
