@@ -10,6 +10,7 @@ public class Move {
     public Piece captured;   // The piece that is captured, if any
     public Piece promotionName; //What the piece will be promoted to
     public List<MoveType> flags = new ArrayList<>(); // Special flags for castling, en passant, promotion, etc.
+    public boolean castled = false;
 
     public int previousCastlingRights;
     public int previousEnpassantSquare;

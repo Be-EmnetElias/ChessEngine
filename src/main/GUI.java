@@ -120,6 +120,7 @@ class ChessPanel extends JPanel {
                     }
 
                     if(userMove != null){ //MOVE PIECE
+                        //System.out.println("USER MOVE: " + userMove);
                         board.movePiece(userMove,false);
                         moveHistory[0] = userMove.fromSquare;
                         moveHistory[1] = userMove.toSquare;
@@ -134,7 +135,8 @@ class ChessPanel extends JPanel {
                 }
                 repaint();
                 if(validMove){
-                    Move bestMove = board.HIVE.bestMove(board.getCurrentLegalMoves(board.IS_WHITE_TURN),depth,board.IS_WHITE_TURN);
+                    ArrayList<Move> moves = new ArrayList<>(board.getCurrentLegalMoves(board.IS_WHITE_TURN));
+                    Move bestMove = board.HIVE.bestMove(moves,depth,board.IS_WHITE_TURN);
                     if(bestMove != null){
                         board.movePiece(bestMove,false);
                         moveHistory[0] = bestMove.fromSquare;
@@ -206,11 +208,12 @@ class ChessPanel extends JPanel {
             }
         }
 
+        long[] currentPieces = board.getBoard();
         //draw all pieces
         for (int row = 0; row < 8; row++) {
             for (int col = 0; col < 8; col++) {
                 int square = row * 8 + col;
-                Piece current = board.getPieceAtSquare(square);
+                Piece current = board.getPieceAtSquare(square,currentPieces);
                 g.setColor(Color.RED);
                 g.drawString((row*8 + col) + "", col*100,row*100 + 100);
                 if (current != Piece.EMPTY) {

@@ -20,6 +20,8 @@ public class Evaluator {
      */
     public double CHECKMATE = 100, PROMOTION = 50, CASTLE = 30, CAPTURE = 25, CHECK = 10, DEFAULT = 0;
 
+    public double OPENING_WEIGHT = 100, MIDDLE_GAME_WEIGHT = 0, END_GAME_WEIGHT = 0;
+
     private double getMovePriority(Move move){
         double result = 0.0;
         for(MoveType flag: move.flags){
@@ -64,12 +66,15 @@ public class Evaluator {
         Move bestMove = !currentLegalMoves.isEmpty() ? currentLegalMoves.get(0):null;
         double alpha = Double.NEGATIVE_INFINITY;
         double beta = Double.POSITIVE_INFINITY;
-        for (Move move : currentLegalMoves) {
+        List<Move> orderedMoves = orderMoves(currentLegalMoves);
+        for (Move move : orderedMoves) {
             BOARD.movePiece(move, true);
             List<Move> nextLegalMoves = orderMoves(BOARD.getCurrentLegalMoves(!COLOR));
             List<Move> nextEnemyLegalMoves = orderMoves(BOARD.getCurrentLegalMoves(COLOR));
             double score = -negamax(nextLegalMoves,nextEnemyLegalMoves, depth - 1, !COLOR,-beta,-alpha);  // Negate the score
+            //System.out.println("SCORE: " + score + " MOVE: " + move);
             BOARD.undoMove(move, true);
+
     
             if (score > maxScore) {
                 maxScore = score;
@@ -77,14 +82,18 @@ public class Evaluator {
             }
 
             alpha = Math.max(alpha, score);
-            if(alpha >= beta) break;
+            if(alpha >= beta){
+                break;
+            }
         }
+        //System.out.println();
     
         return bestMove;
     }
     
     private double negamax(List<Move> currentLegalMoves,List<Move> enemyLegalMoves, int depth, boolean COLOR, double alpha, double beta) {
-        if (depth <= 0) return staticEvaluation(currentLegalMoves,COLOR) - staticEvaluation(enemyLegalMoves, !COLOR);
+        //if (depth <= 0) return SearchCapturesChecks(currentLegalMoves, enemyLegalMoves, COLOR, alpha, beta);
+        if(depth <= 0) return staticEvaluation(currentLegalMoves,COLOR) - staticEvaluation(enemyLegalMoves, !COLOR);
     
         double maxScore = Double.NEGATIVE_INFINITY;
         
@@ -107,26 +116,46 @@ public class Evaluator {
         return maxScore;
     }
 
-    private double basicEval(List<Move> currentLegalMoves, boolean isWhite){
-        long[] team = BOARD.getTeamBitBoards(isWhite);
-        double score = 0.0;
-        score += Long.bitCount(team[0]) * 100;
-        score += Long.bitCount(team[1]) * 200;
-        score += Long.bitCount(team[2]) * 300;
-        score += Long.bitCount(team[3]) * 500;
-        score += Long.bitCount(team[4]) * 900;
+    private double SearchCapturesChecks(List<Move> currentLegalMoves,List<Move> enemyLegalMoves, boolean COLOR, double alpha, double beta){
+        List<Move> captureAndCheckOnly = new ArrayList<>();
+        for(Move move: currentLegalMoves){
+            if(!move.flags.contains(MoveType.CHECK) || !move.flags.contains(MoveType.CAPTURE)) break;
+            captureAndCheckOnly.add(move);
+        }
+
+        if (captureAndCheckOnly.isEmpty()) return staticEvaluation(currentLegalMoves,COLOR) - staticEvaluation(enemyLegalMoves, !COLOR);
+    
+        double maxScore = Double.NEGATIVE_INFINITY;
         
-        return score;
-        
+    
+        for (Move move : captureAndCheckOnly) {
+            BOARD.movePiece(move, true);
+            List<Move> nextLegalMoves = orderMoves(BOARD.getCurrentLegalMoves(!COLOR));
+            List<Move> nextEnemyLegalMoves = orderMoves(BOARD.getCurrentLegalMoves(COLOR));
+            double score = -SearchCapturesChecks(nextLegalMoves, nextEnemyLegalMoves, !COLOR, -beta, -alpha);  // Negate the score
+            BOARD.undoMove(move, true);
+    
+            if (score > maxScore) {
+                maxScore = score;
+            }
+
+            alpha = Math.max(alpha,score);
+            //if(alpha >= beta) break;
+            //TODO: issue, might be with alpha beta pruning but it is missing mate in 1. As you can see below all moves have a score of infinity
+        }
+    
+        return maxScore;
     }
 
 
-// = = == == == === === WEIGHTS === === == == == = =
+
+
+// ! = = == == == === === WEIGHTS === === == == == = = 
 
     public double 
     
-    WEAK_COUNT_WEIGHT = 1.0,
-
+    WEAK_COUNT_WEIGHT = 1.0, 
+    
     
     MATERIAL_COUNT_PAWN_WEIGHT = 100.0, 
     
@@ -199,14 +228,14 @@ public class Evaluator {
     QUEEN_MOBILITY_WEIGHT = 1.0,
 
     
-    KING_CASTLED_WEIGHT = 10.0,
+    KING_CASTLED_WEIGHT = 100.0,
 
     KING_ATTACKED_VALUE_WEIGHT = -1.0,
 
     KING_DEFENDED_VALUE_WEIGHT = 1.0;
 
 
-// * = = == == == === === === === === == == == = =
+// ! = = == == == === === === === === == == == = =
 
 
 
@@ -261,53 +290,53 @@ public class Evaluator {
 
 
         //GENERAL INFORMATION
-        score += weakCount(currentLegalMoves, enemies)         *WEAK_COUNT_WEIGHT;
+        score += weakCount(currentLegalMoves, enemies)                                                  *WEAK_COUNT_WEIGHT;
 
         //PAWN INFORMATION
-        score += materialCount(pawns)  *MATERIAL_COUNT_PAWN_WEIGHT;
-        score += centerPawnCount(pawns)                             *CENTER_PAWN_COUNT_WEIGHT;
-        score += kingPawnShield(pawns,king)                              *KING_PAWN_SHIELD_WEIGHT;
-        score += isolatedPawns(pawns)                          *ISOLATED_PAWN_WEIGHT;
-        score += doubledPawns(pawns)                            *DOUBLE_PAWN_WEIGHT;
-        score += passPawns(pawns, enemyPawns, isWhite)                              *PASS_PAWN_WEIGHT;
-        score += rankPassPawn()                          *RANK_PASS_PAWN_WEIGHT;
-        score += backwardPawn()                                 *BACKWARD_PAWN_WEIGHT;
-        score += blockedPawn()                                  *BLOCKED_PAWN_WEIGHT;
-        score += blockedPassPawn()                              *BLOCKED_PASSED_PAWN_WEIGHT;
+        score += materialCount(pawns)                                                                   *MATERIAL_COUNT_PAWN_WEIGHT;
+        score += centerPawnCount(pawns)                                                                 *CENTER_PAWN_COUNT_WEIGHT;
+        score += kingPawnShield(pawns,king)                                                             *KING_PAWN_SHIELD_WEIGHT;
+        score += isolatedPawns(pawns)                                                                   *ISOLATED_PAWN_WEIGHT;
+        score += doubledPawns(pawns)                                                                    *DOUBLE_PAWN_WEIGHT;
+        score += passPawns(pawns, enemyPawns, isWhite)                                                  *PASS_PAWN_WEIGHT;
+        score += rankPassPawn()                                                                         *RANK_PASS_PAWN_WEIGHT;
+        score += backwardPawn()                                                                         *BACKWARD_PAWN_WEIGHT;
+        score += blockedPawn()                                                                          *BLOCKED_PAWN_WEIGHT;
+        score += blockedPassPawn()                                                                      *BLOCKED_PASSED_PAWN_WEIGHT;
 
         //KNIGHT INFORMATION
-        score += materialCount(knights)                    *MATERIAL_COUNT_KNIGHT_WEIGHT;
-        score += mobility(isWhite ? Piece.WHITE_KNIGHT: Piece.BLACK_KNIGHT, pieceMovesMap)            *KNIGHT_MOBILITY_WEIGHT;
-        score += knightOnOutpost(knights, enemyPawns)                       *KNIGHT_ON_OUTPOST_WEIGHT;
-        score += knightOnCenter(knights)                               *KNIGHT_ON_CENTER_WEIGHT;
-        score += knightOnOuterEdge1(knights)                           *KNIGHT_ON_OUTER_EDGE_1_WEIGHT;
-        score += knightOnOuterEdge2(knights)                           *KNIGHT_ON_OUTER_EDGE_2_WEIGHT;
-        score += knightOnOuterEdge3(knights)                           *KNIGHT_ON_OUTER_EDGE_3_WEIGHT;
-        score += knightSupportedByPawn(knights, pawns)                        *KNIGHT_SUPPORTED_BY_PAWN_WEIGHT;
+        score += materialCount(knights)                                                                 *MATERIAL_COUNT_KNIGHT_WEIGHT;
+        score += mobility(isWhite ? Piece.WHITE_KNIGHT: Piece.BLACK_KNIGHT, pieceMovesMap)              *KNIGHT_MOBILITY_WEIGHT;
+        score += knightOnOutpost(knights, enemyPawns)                                                   *KNIGHT_ON_OUTPOST_WEIGHT;
+        score += knightOnCenter(knights)                                                                *KNIGHT_ON_CENTER_WEIGHT;
+        score += knightOnOuterEdge1(knights)                                                            *KNIGHT_ON_OUTER_EDGE_1_WEIGHT;
+        score += knightOnOuterEdge2(knights)                                                            *KNIGHT_ON_OUTER_EDGE_2_WEIGHT;
+        score += knightOnOuterEdge3(knights)                                                            *KNIGHT_ON_OUTER_EDGE_3_WEIGHT;
+        score += knightSupportedByPawn(knights, pawns)                                                  *KNIGHT_SUPPORTED_BY_PAWN_WEIGHT;
 
         //BISHOP INFORMATION
-        score += materialCount(bishops)                    *MATERIAL_COUNT_BISHOP_WEIGHT;
-        score += mobility(isWhite ? Piece.WHITE_BISHOP: Piece.BLACK_BISHOP, pieceMovesMap)           *BISHOP_MOBILITY_WEIGHT;
-        score += bishopOnLargeDiagonal(bishops)                        *BISHOP_ON_LARGE_DIAGONAL_WEIGHT;
-        score += bishopPair(bishops)                                   *BISHOP_PAIR_WEIGHT;
+        score += materialCount(bishops)                                                                 *MATERIAL_COUNT_BISHOP_WEIGHT;
+        score += mobility(isWhite ? Piece.WHITE_BISHOP: Piece.BLACK_BISHOP, pieceMovesMap)              *BISHOP_MOBILITY_WEIGHT;
+        score += bishopOnLargeDiagonal(bishops)                                                         *BISHOP_ON_LARGE_DIAGONAL_WEIGHT;
+        score += bishopPair(bishops)                                                                    *BISHOP_PAIR_WEIGHT;
 
         //ROOK INFORMATION
-        score += materialCount(rooks)                      *MATERIAL_COUNT_ROOK_WEIGHT;
-        score += mobility(isWhite ? Piece.WHITE_ROOK: Piece.BLACK_ROOK, pieceMovesMap)              *ROOK_MOBILITY_WEIGHT;
-        score += rookBehindPassPawn()                           *ROOK_BEHIND_PASS_PAWN;
-        score += rookOnClosedFile(rooks, pawns, enemyPawns)                             *ROOK_ON_CLOSED_FILE;
-        score += rookOnOpenFile(rooks,board)                               *ROOK_ON_OPEN_FILE;
-        score += rookOnSemiOpenFile(rooks,pawns)                           *ROOK_ON_SEMI_OPEN_FILE;
-        score += rooksConnected(rooks,board)                               *ROOKS_CONNECTED_WEIGHT;
+        score += materialCount(rooks)                                                                   *MATERIAL_COUNT_ROOK_WEIGHT;
+        score += mobility(isWhite ? Piece.WHITE_ROOK: Piece.BLACK_ROOK, pieceMovesMap)                  *ROOK_MOBILITY_WEIGHT;
+        score += rookBehindPassPawn()                                                                   *ROOK_BEHIND_PASS_PAWN;
+        score += rookOnClosedFile(rooks, pawns, enemyPawns)                                             *ROOK_ON_CLOSED_FILE;
+        score += rookOnOpenFile(rooks,board)                                                            *ROOK_ON_OPEN_FILE;
+        score += rookOnSemiOpenFile(rooks,pawns)                                                        *ROOK_ON_SEMI_OPEN_FILE;
+        score += rooksConnected(rooks,board)                                                            *ROOKS_CONNECTED_WEIGHT;
 
         //QUEEN INFORMATION
-        score += materialCount(queens)                     *MATERIAL_COUNT_QUEEN_WEIGHT;
-        score += mobility(isWhite ? Piece.WHITE_QUEEN: Piece.BLACK_QUEEN, pieceMovesMap)            *QUEEN_MOBILITY_WEIGHT;
+        score += materialCount(queens)                                                                  *MATERIAL_COUNT_QUEEN_WEIGHT;
+        score += mobility(isWhite ? Piece.WHITE_QUEEN: Piece.BLACK_QUEEN, pieceMovesMap)                *QUEEN_MOBILITY_WEIGHT;
 
         //KING INFORMATION
-        score += kingCastled()                                 *KING_CASTLED_WEIGHT;
-        score += kingAttackedValue()                           *KING_ATTACKED_VALUE_WEIGHT;
-        score += kingDefendedValue()                           *KING_DEFENDED_VALUE_WEIGHT;
+        score += kingCastled(isWhite)                                                                          *KING_CASTLED_WEIGHT;
+        score += kingAttackedValue()                                                                    *KING_ATTACKED_VALUE_WEIGHT;
+        score += kingDefendedValue()                                                                    *KING_DEFENDED_VALUE_WEIGHT;
 
         return score;
     }
@@ -675,10 +704,10 @@ public class Evaluator {
      * @param COLOR
      * @return
      */
-    public int kingCastled(){
-        int score = 0;
-        //TODO:
-        return score;
+    public int kingCastled(boolean isWhite){
+        if(BOARD.WHITE_CASTLED && isWhite) return 1;
+        else if(BOARD.BLACK_CASTLED && !isWhite) return 1;
+        else return 0;
     }
 
     /**

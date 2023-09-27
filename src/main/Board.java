@@ -41,7 +41,7 @@ public class Board{
     /**
      * Arrays containing the bitboards of each team
      */
-    public Bitboard[] BOARD, WHITE_TEAM_BITBOARDS, BLACK_TEAM_BITBOARDS;
+    public long[] BOARD;
 
     /**
      * Bitboard for the current enpassant square
@@ -58,6 +58,10 @@ public class Board{
      */
     public boolean IS_WHITE_TURN;
 
+    public boolean WHITE_CASTLED;
+
+    public boolean BLACK_CASTLED;
+
     /**
      * Evaluates a board position and finds the 'best' move
      */
@@ -65,14 +69,20 @@ public class Board{
 
 
     public Board(){
-        setBoard("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 1");
-        
+        String position = "6k1/8/8/8/8/3n4/6PR/5R1K w - - 0 1";
+
+        setBoard("1r5k/1r6/8/8/K7/8/8/8 w - - 0 1");
+        this.BOARD = getAllBitboards();
         HIVE = new Evaluator();
         HIVE.BOARD = this;
     }
 
     public Board(String fenposition){
         setBoard(fenposition);
+    }
+
+    public long[] getBoard(){
+        return this.BOARD;
     }
 
     public void movePiece(Move move, boolean simulation){
@@ -170,10 +180,6 @@ public class Board{
         if(move.flags.contains(MoveType.ENPASSANT)){
             toSquare += (pieceType == Piece.WHITE_PAWN ? 8:-8);
         }
-
-        if(move.flags.contains(MoveType.PROMOTION)){
-            move.piece = move.promotionName;
-        }
         
         switch (move.captured) {
             case WHITE_PAWN:
@@ -224,6 +230,9 @@ public class Board{
         }
         
         if(move.flags.contains(MoveType.CASTLE)){
+            if(toSquare > 50) WHITE_CASTLED = true;
+            if(toSquare < 10) BLACK_CASTLED = true;
+
             //move rook
             if(toSquare == 62){
                 this.WHITE_ROOK_BITBOARD.clearBit(63);
@@ -270,6 +279,9 @@ public class Board{
         
         
         this.IS_WHITE_TURN = !this.IS_WHITE_TURN;
+        if(!simulation){
+            this.BOARD = getAllBitboards();
+        }
         
     }
 
@@ -283,16 +295,30 @@ public class Board{
 
         switch (pieceType) {
             case WHITE_PAWN:
-                WHITE_PAWN_BITBOARD.clearBit(toSquare);  
+                if(!move.flags.contains(MoveType.PROMOTION)) WHITE_PAWN_BITBOARD.clearBit(toSquare);
+                else{
+                    switch(move.promotionName){
+                        case WHITE_QUEEN:
+                            WHITE_QUEEN_BITBOARD.clearBit(toSquare);
+                            break;
+                        case WHITE_ROOK:
+                            WHITE_ROOK_BITBOARD.clearBit(toSquare);
+                            break;
+                        case WHITE_BISHOP:
+                            WHITE_BISHOP_BITBOARD.clearBit(toSquare);
+                            break;
+                        case WHITE_KNIGHT:
+                            WHITE_KNIGHT_BITBOARD.clearBit(toSquare);
+                            break;
+                        default: break;
+                    }
+                }
                 WHITE_PAWN_BITBOARD.setBit(fromSquare);    
                 break;
             case BLACK_BISHOP:
                 BLACK_BISHOP_BITBOARD.clearBit(toSquare);
-                if(move.flags.contains(MoveType.PROMOTION)){
-                    BLACK_PAWN_BITBOARD.setBit(fromSquare);
-                }else{
-                    BLACK_BISHOP_BITBOARD.setBit(fromSquare);  
-                }
+                BLACK_BISHOP_BITBOARD.setBit(fromSquare);  
+                
                 break;
             case BLACK_KING:
                 BLACK_KING_BITBOARD.clearBit(toSquare);  
@@ -300,39 +326,44 @@ public class Board{
                 break;
             case BLACK_KNIGHT:
                 BLACK_KNIGHT_BITBOARD.clearBit(toSquare);  
-                if(move.flags.contains(MoveType.PROMOTION)){
-                    BLACK_PAWN_BITBOARD.setBit(fromSquare);
-                }else{
-                    BLACK_KNIGHT_BITBOARD.setBit(fromSquare);  
-                }
+                BLACK_KNIGHT_BITBOARD.setBit(fromSquare);  
+
                 break;
             case BLACK_PAWN:
-                BLACK_PAWN_BITBOARD.clearBit(toSquare);  
+                if(!move.flags.contains(MoveType.PROMOTION)) BLACK_PAWN_BITBOARD.clearBit(toSquare);
+                else{
+                    switch(move.promotionName){
+                        case BLACK_QUEEN:
+                            BLACK_QUEEN_BITBOARD.clearBit(toSquare);
+                            break;
+                        case BLACK_ROOK:
+                            BLACK_ROOK_BITBOARD.clearBit(toSquare);
+                            break;
+                        case BLACK_BISHOP:
+                            BLACK_BISHOP_BITBOARD.clearBit(toSquare);
+                            break;
+                        case BLACK_KNIGHT:
+                            BLACK_KNIGHT_BITBOARD.clearBit(toSquare);
+                            break;
+                        default: break;
+                    }
+                } 
                 BLACK_PAWN_BITBOARD.setBit(fromSquare);  
                 break;
             case BLACK_QUEEN:
                 BLACK_QUEEN_BITBOARD.clearBit(toSquare);  
-                if(move.flags.contains(MoveType.PROMOTION)){
-                    BLACK_PAWN_BITBOARD.setBit(fromSquare);
-                }else{
-                    BLACK_QUEEN_BITBOARD.setBit(fromSquare);  
-                }
+                BLACK_QUEEN_BITBOARD.setBit(fromSquare);  
+                
                 break;
             case BLACK_ROOK:
                 BLACK_ROOK_BITBOARD.clearBit(toSquare);  
-                if(move.flags.contains(MoveType.PROMOTION)){
-                    BLACK_PAWN_BITBOARD.setBit(fromSquare);
-                }else{
-                    BLACK_ROOK_BITBOARD.setBit(fromSquare);  
-                }  
+                BLACK_ROOK_BITBOARD.setBit(fromSquare);  
+                 
                 break;
             case WHITE_BISHOP:
                 WHITE_BISHOP_BITBOARD.clearBit(toSquare);  
-                if(move.flags.contains(MoveType.PROMOTION)){
-                    WHITE_PAWN_BITBOARD.setBit(fromSquare);
-                }else{
-                    WHITE_BISHOP_BITBOARD.setBit(fromSquare);  
-                }
+                WHITE_BISHOP_BITBOARD.setBit(fromSquare);  
+                
                 break;
             case WHITE_KING:
                 WHITE_KING_BITBOARD.clearBit(toSquare);  
@@ -340,27 +371,17 @@ public class Board{
                 break;
             case WHITE_KNIGHT:
                 WHITE_KNIGHT_BITBOARD.clearBit(toSquare);  
-                if(move.flags.contains(MoveType.PROMOTION)){
-                    WHITE_PAWN_BITBOARD.setBit(fromSquare);
-                }else{
-                    WHITE_KNIGHT_BITBOARD.setBit(fromSquare);  
-                }    
+                WHITE_KNIGHT_BITBOARD.setBit(fromSquare);  
+                  
                 break;
             case WHITE_QUEEN:
                 WHITE_QUEEN_BITBOARD.clearBit(toSquare);  
-                if(move.flags.contains(MoveType.PROMOTION)){
-                    WHITE_PAWN_BITBOARD.setBit(fromSquare);
-                }else{
-                    WHITE_QUEEN_BITBOARD.setBit(fromSquare);  
-                } 
+                WHITE_QUEEN_BITBOARD.setBit(fromSquare);  
+                
                 break;
             case WHITE_ROOK:
                 WHITE_ROOK_BITBOARD.clearBit(toSquare);  
-                if(move.flags.contains(MoveType.PROMOTION)){
-                    WHITE_PAWN_BITBOARD.setBit(fromSquare);
-                }else{
-                    WHITE_ROOK_BITBOARD.setBit(fromSquare);  
-                } 
+                WHITE_ROOK_BITBOARD.setBit(fromSquare);  
                 break;
             default:
                 break;
@@ -416,6 +437,9 @@ public class Board{
         
         
         if(move.flags.contains(MoveType.CASTLE)){
+            if(toSquare > 50) WHITE_CASTLED = false;
+            if(toSquare < 10) BLACK_CASTLED = false;
+
             if(toSquare == 62){
                 this.WHITE_ROOK_BITBOARD.clearBit(61);
                 this.WHITE_ROOK_BITBOARD.setBit(63);
@@ -451,7 +475,7 @@ public class Board{
         long[] board = getAllBitboards();
         Bitboard pushMask = null;
         int captureMask = -1;
-        List<Move> enemyMoves = getPsuedoLegalMoves(enemies,teamWithoutKing,new ArrayList<Integer>(),board,!isWhite, true,false,captureMask,pushMask, kingPosition);
+        List<Move> enemyMoves = getPsuedoLegalMoves(enemies,teamWithoutKing,new ArrayList<Integer>(),board,!isWhite, true,false,captureMask,pushMask, enemyKingPosition,kingPosition);
         List<Integer> dangerSquares = new ArrayList<>();
 
         for(int displacement: new int[]{-9,-8,-7,-1,1,7,8,9}){
@@ -500,11 +524,11 @@ public class Board{
             }
         }
 
-        List<Move> legalMoves = getPsuedoLegalMoves(team,enemies,dangerSquares,board,isWhite,false,doubleCheck,captureMask,pushMask, kingPosition);
+        List<Move> legalMoves = getPsuedoLegalMoves(team,enemies,dangerSquares,board,isWhite,false,doubleCheck,captureMask,pushMask, kingPosition,enemyKingPosition);
         return legalMoves;
     }
 
-    public List<Move> getPsuedoLegalMoves(long[] team, long[] enemies, List<Integer> dangerSquares, long[] board, boolean isWhite, boolean removeKing, boolean doubleCheck, int captureMask, Bitboard pushMask, int kingPosition){
+    public List<Move> getPsuedoLegalMoves(long[] team, long[] enemies, List<Integer> dangerSquares, long[] board, boolean isWhite, boolean removeKing, boolean doubleCheck, int captureMask, Bitboard pushMask, int kingPosition, int enemyKingPosition){
         List<Move> moves = new ArrayList<>();
         long teamPieces = 0L;
         long enemyPieces = 0L;
@@ -529,11 +553,14 @@ public class Board{
         moves.addAll(slidingPieceMoves(team[3],teamPieces,enemyPieces, isWhite, "ROOK", captureMask,pushMask, pinnedPieces,removeKing));
         moves.addAll(slidingPieceMoves(team[4],teamPieces,enemyPieces, isWhite, "QUEEN", captureMask,pushMask, pinnedPieces,removeKing));
 
-        for(Move move: moves){
-            if(move.toSquare == kingPosition){
-                move.flags.add(MoveType.CHECK);
+        if(!removeKing){
+            for(Move move: moves){
+                if(move.toSquare == enemyKingPosition){
+                    move.flags.add(MoveType.CHECK);
+                }
             }
         }
+        
 
         return moves;
     }
@@ -608,6 +635,7 @@ public class Board{
 
         // Displacements for a knight
         int[] pawnDisplacements = (isWhite) ? new int[]{-16,-8,-7,-9}: new int[]{16,8,7,9};
+        Piece name = isWhite ? Piece.WHITE_PAWN : Piece.BLACK_PAWN;
 
         while (pawns != 0) {
             int fromSquare = Long.numberOfTrailingZeros(pawns);  // Find the square number of one of the knights
@@ -631,21 +659,21 @@ public class Board{
 
                     // forward move, attacksOnly must be false, since this is not an attack
                     if (!attacksOnly && Math.abs(displacement) == 8 && getPieceAtSquare(toSquare) == Piece.EMPTY) {
-                        move = new Move(fromSquare, toSquare, getPieceAtSquare(fromSquare), getPieceAtSquare(toSquare), MoveType.DEFAULT);
+                        move = new Move(fromSquare, toSquare, name, getPieceAtSquare(toSquare), MoveType.DEFAULT);
                     }
                     
                     //double atack
                     if(!attacksOnly && (Math.abs(displacement) == 16) && canJump && (getPieceAtSquare(toSquare) == Piece.EMPTY) && (getPieceAtSquare(fromSquare+displacement/2) == Piece.EMPTY)){
-                        move = new Move(fromSquare, toSquare, getPieceAtSquare(fromSquare), getPieceAtSquare(toSquare), MoveType.DOUBLE);
+                        move = new Move(fromSquare, toSquare, name, getPieceAtSquare(toSquare), MoveType.DOUBLE);
                     }
                     
                     //When attacksOnly is true, we are looking for all attacks
                     if(Math.abs(displacement) % 2 != 0 && (attacksOnly || isOccupiedByOwnTeam(toSquare, enemy))){ //diagonal
-                        move = new Move(fromSquare, toSquare, getPieceAtSquare(fromSquare), getPieceAtSquare(toSquare), MoveType.CAPTURE);
+                        move = new Move(fromSquare, toSquare, name, getPieceAtSquare(toSquare), MoveType.CAPTURE);
                     }
                     
                     if(Math.abs(displacement) % 2 != 0 && (this.ENPASSANT_SQUARE == toSquare)){
-                        move = new Move(fromSquare, toSquare, getPieceAtSquare(fromSquare), getPieceAtSquare(toSquare + (isWhite?8:-8)), MoveType.ENPASSANT);
+                        move = new Move(fromSquare, toSquare, name, getPieceAtSquare(toSquare + (isWhite?8:-8)), MoveType.ENPASSANT);
                     }
 
                     if(captureMask != -1 || pushMask != null){
@@ -659,13 +687,10 @@ public class Board{
                         promoteQueen.flags.add(MoveType.PROMOTION);
                         promoteQueen.promotionName = isWhite ? Piece.WHITE_QUEEN : Piece.BLACK_QUEEN;
                         Move promoteRook = new Move(move);
-                        promoteRook.flags.add(MoveType.PROMOTION);
                         promoteRook.promotionName = isWhite ? Piece.WHITE_ROOK : Piece.BLACK_ROOK;
                         Move promoteBishop = new Move(move);
-                        promoteBishop.flags.add(MoveType.PROMOTION);
                         promoteBishop.promotionName = isWhite ? Piece.WHITE_BISHOP : Piece.BLACK_BISHOP;
                         Move promoteKnight = new Move(move);
-                        promoteKnight.flags.add(MoveType.PROMOTION);
                         promoteKnight.promotionName = isWhite ? Piece.WHITE_KNIGHT : Piece.BLACK_KNIGHT;
 
                         result.add(promoteQueen);
@@ -898,8 +923,11 @@ public class Board{
      * @return Returns the {@code Piece} at this square
      */
     public Piece getPieceAtSquare(int square){
+        return getPieceAtSquare(square,getAllBitboards());
+    }
+
+    public Piece getPieceAtSquare(int square, long[] board){
         long bit = 1L << square;
-        long[] board = getAllBitboards();
         Piece[] pieces = Piece.values();
         for(int i=0; i < board.length; i++){
             if((board[i] & bit) != 0){
